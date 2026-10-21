@@ -1,18 +1,63 @@
-# Machine Learning-Based Intrusion Detection System (IDS)
+# Defence Network Security Monitoring and Incident Response System
 
-An academic cybersecurity prototype that evaluates network traffic feature vectors and classifies them as **Normal Traffic** or **Potential Intrusion** in real time using a Scikit-Learn machine learning model trained on the benchmark **NSL-KDD dataset**.
+An academic cybersecurity prototype upgraded from a Machine Learning Intrusion Detection System into an end-to-end **Defence SOC Monitoring and Incident Response System**. 
+
+The system couples a pre-trained **Scikit-Learn Machine Learning Pipeline (NSL-KDD 41-feature model)** with simulated defence network sectors, rule-based threat prioritization, human-in-the-loop incident response, and an immutable SQLite audit trail.
 
 ---
 
-## 🛡️ Project Overview & Architecture
+## ⚠️ Academic Prototype & Simulation Disclaimer
 
-This project is built from scratch with a decoupled full-stack architecture:
+> **IMPORTANT**: This application is strictly an **academic and laboratory evaluation prototype**.
+>
+> - **Simulated Defence Sectors**: All network sectors (*Command Centre*, *Surveillance Systems*, *Secure Communications*, *Military Base Networks*) and network topologies are simulated. The system is **NOT** connected to any physical military infrastructure or operational command hardware.
+> - **Simulated Incident Response**: All isolation and containment actions (*Simulated Zone Isolation*, *Simulated IP Ingress Drop*) are software simulations for academic response evaluation. No commands are executed on real hardware or physical network interfaces.
+> - **Real Machine Learning & Persistence**: The model predictions (*Normal* vs *Intrusion*), confidence calculations, threat prioritization rules, analyst decisions, and the SQLite audit trail are fully functional and persistent.
 
-- **Frontend (`/frontend`)**: Modern React + Vite cybersecurity dashboard styled with Tailwind CSS in a defense-inspired dark navy and cyber emerald theme. Features summary KPI cards, 1-click benchmark attack presets, full 41-feature input tabs, real-time threat verdicts, and an audit history log with CSV export.
-- **Backend (`/backend`)**: Python Flask REST API with CORS enabled. Hosts `/health`, `/schema`, `/presets`, and `/predict` endpoints.
-- **Machine Learning**: Loads the pre-trained `ids_model.pkl` pipeline using `joblib` and `scikit-learn`. The pipeline combines a `ColumnTransformer` (One-Hot Encoding for categorical features and passthrough for numeric features) with a `DecisionTreeClassifier`.
+---
 
-> **Academic Prototype Notice**: This system is designed for educational evaluation. It does not automatically sniff real network hardware interfaces; users analyze traffic packets by submitting 41 network connection attributes or selecting benchmark attack presets.
+## 🏛️ System Architecture
+
+```text
+                               +-------------------------------------+
+                               |   PERIMETER FIREWALL & CORE GATEWAY |
+                               +-------------------------------------+
+                                                  |
+                     +----------------------------+----------------------------+
+                     |                            |                            |
+       +----------------------------+             |              +----------------------------+
+       |   Zone 1: Command Centre   |             |              |  Zone 2: Surveillance Sys  |
+       |  Tier 1 - Mission Critical |             |              |   Tier 2 - Tactical High   |
+       +----------------------------+             |              +----------------------------+
+                     |                            |                            |
+                     +----------------------------+----------------------------+
+                                                  |
+                     +----------------------------+----------------------------+
+                     |                                                         |
+       +----------------------------+                            +----------------------------+
+       | Zone 3: Secure Comms Link  |                            |  Zone 4: Military Base     |
+       |    Tier 1 - Confidential   |                            |    Tier 3 - Operational    |
+       +----------------------------+                            +----------------------------+
+```
+
+### Module Breakdown:
+
+1. **Defence Network Command Center (`/api/zones`)**:
+   - Manages 4 simulated defence zones with live simulated packet volumes, threat counters, and security statuses (`SECURE`, `ELEVATED`, `UNDER_ATTACK`, `ISOLATED_SIMULATED`).
+2. **Threat Prioritization Engine (`prioritization.py`)**:
+   - Generates alerts strictly from actual model predictions.
+   - Evaluates documented priority rules combining model confidence, attack archetype (DoS, Probe, R2L, U2R), and sector criticality tier.
+   - Decouples **Prediction** (Normal/Intrusion), **Severity** (P1 Critical, P2 High, P3 Medium, P4 Low), and **Confidence** (%).
+3. **Incident Response Workflow Console (`IncidentResponseConsole.jsx`)**:
+   - Full 41-feature NSL-KDD packet telemetry inspector.
+   - Automated response recommendations for human review.
+   - Human analyst journal and formal decision recorder (`CONFIRMED_INTRUSION`, `FALSE_POSITIVE`, `POLICY_VIOLATION`, `UNDER_INVESTIGATION`).
+   - Explicit human approval modal required before recording simulated containment.
+4. **Network Zone Topology Visualization (`DefenceTopology.jsx`)**:
+   - Interactive SVG/node topology graph of interconnected defence zones with live status rings.
+   - Single-click sector inspection and simulated zone containment toggle.
+5. **Immutable Audit Trail (`database.py` & `AuditTrailView.jsx`)**:
+   - Persistent SQLite database (`backend/defence_ids.db`) recording all model inferences, alert generation, analyst decisions, and approved simulated actions with timestamped Event IDs (`AUD-2026-XXXX`).
 
 ---
 
@@ -21,213 +66,113 @@ This project is built from scratch with a decoupled full-stack architecture:
 ```text
 zealous-bell/
 ├── backend/
-│   ├── ids_model.pkl           # Trained NSL-KDD Machine Learning pipeline
-│   ├── app.py                  # Flask REST API server (/health, /predict, etc.)
-│   ├── features.py             # Feature definitions, metadata, and attack presets
-│   ├── test_api.py             # Automated end-to-end API test suite
-│   └── requirements.txt        # Python dependencies
+│   ├── ids_model.pkl              # Pre-trained NSL-KDD Scikit-Learn ML pipeline
+│   ├── app.py                     # Flask REST API with defence endpoints
+│   ├── database.py                # SQLite database manager (zones, alerts, audit)
+│   ├── prioritization.py          # Threat prioritization rule engine
+│   ├── features.py                # 41 NSL-KDD feature metadata & attack presets
+│   ├── test_api.py                # Automated test suite
+│   ├── requirements.txt           # Python dependencies
+│   └── defence_ids.db             # Persistent SQLite database file
 │
 ├── frontend/
 │   ├── src/
 │   │   ├── components/
-│   │   │   ├── Navbar.jsx            # Header with live Flask health monitor
-│   │   │   ├── SummaryCards.jsx      # Analyzed, normal, intrusion KPI cards
-│   │   │   ├── PresetSelector.jsx    # 1-click attack benchmark presets
-│   │   │   ├── TrafficForm.jsx       # 41-feature tabbed input form
-│   │   │   ├── PredictionResult.jsx  # SOC threat verdict & confidence panel
-│   │   │   ├── HistoryTable.jsx      # Audit history table with CSV export
-│   │   │   └── DatasetInfoModal.jsx  # NSL-KDD dataset reference dialog
-│   │   ├── App.jsx                   # Main React dashboard component
-│   │   ├── index.css                 # Cyber aesthetic and glow themes
-│   │   └── main.jsx                  # React application entry point
-│   ├── index.html                    # HTML document
-│   ├── package.json                  # Frontend dependencies
-│   ├── vite.config.js                # Vite build configuration
-│   └── tailwind.config.js            # Tailwind color scheme
+│   │   │   ├── Navbar.jsx                  # Defense header & module navigation
+│   │   │   ├── DefenceTopology.jsx         # Command center & interactive topology
+│   │   │   ├── ThreatPrioritization.jsx    # Prioritized security alerts feed
+│   │   │   ├── IncidentResponseConsole.jsx # Analyst investigation & approval console
+│   │   │   ├── AuditTrailView.jsx          # SQLite audit trail viewer & CSV export
+│   │   │   ├── SummaryCards.jsx            # Global SOC KPI metrics
+│   │   │   ├── PresetSelector.jsx          # 1-click benchmark attack presets
+│   │   │   ├── TrafficForm.jsx             # 41-feature tabbed input form
+│   │   │   ├── PredictionResult.jsx        # SOC threat verdict & IP block banner
+│   │   │   ├── BlockedIPsTable.jsx         # Firewall blacklist manager
+│   │   │   ├── HistoryTable.jsx            # Session history table
+│   │   │   └── DatasetInfoModal.jsx        # NSL-KDD dataset reference dialog
+│   │   ├── App.jsx                         # Main dashboard controller
+│   │   ├── index.css                       # Cyber defence dark navy & emerald theme
+│   │   └── main.jsx                        # React entry point
+│   ├── package.json
+│   ├── vite.config.js
+│   └── tailwind.config.js
 │
-└── README.md                         # Project documentation and guide
+└── README.md                               # Project documentation
 ```
 
 ---
 
-## 📍 Model File Placement
+## 🚀 Setup & Execution Guide
 
-The trained machine learning model file must be placed at:
-
-```text
-backend/ids_model.pkl
+### 1. Start Backend (Flask API)
+```powershell
+cd backend
+python app.py
 ```
+- Server starts on: **`http://localhost:5000`**
+- SQLite database initializes automatically at `backend/defence_ids.db`.
 
-> **Note**: If you already downloaded `ids_model.pkl` to your `Downloads` folder, it has already been automatically discovered and copied to `backend/ids_model.pkl`.
->
-> If you ever train a new model or re-download it, simply copy your `ids_model.pkl` file into the `backend/` folder. The Flask server will load it automatically upon startup.
-
----
-
-## 🚀 Quick Start Guide
-
-### Prerequisites
-- **Python**: Version 3.9 or higher (tested with Python 3.10+)
-- **Node.js**: Version 18 or higher & `npm`
-
----
-
-### Step 1: Start the Backend (Flask API)
-
-1. Open a terminal and navigate to the `backend` directory:
-   ```bash
-   cd backend
-   ```
-
-2. (Optional but recommended) Create and activate a Python virtual environment:
-   - **Windows**:
-     ```powershell
-     python -m venv venv
-     .\venv\Scripts\Activate.ps1
-     ```
-   - **macOS / Linux**:
-     ```bash
-     python3 -m venv venv
-     source venv/bin/activate
-     ```
-
-3. Install the required Python packages:
-   ```bash
-   pip install -r requirements.txt
-   ```
-
-4. Verify the backend and model by running the automated test suite:
-   ```bash
-   python test_api.py
-   ```
-   *(All tests should pass with green 200 OK responses)*
-
-5. Start the Flask server:
-   ```bash
-   python app.py
-   ```
-   The backend API will start on: **`http://localhost:5000`**
-
----
-
-### Step 2: Start the Frontend (React + Vite)
-
-1. Open a **second terminal** and navigate to the `frontend` directory:
-   ```bash
-   cd frontend
-   ```
-
-2. Install the frontend dependencies:
-   ```bash
-   npm install
-   ```
-
-3. Launch the Vite development server:
-   ```bash
-   npm run dev
-   ```
-
-4. Open your browser and navigate to:
-   ```text
-   http://localhost:5173
-   ```
-
----
-
-## 📡 Backend API Endpoints Reference
-
-| Endpoint | Method | Description |
-| :--- | :---: | :--- |
-| `GET /` | `GET` | System welcome message and endpoint index |
-| `GET /health` | `GET` | Health check verifying model status, classes, and expected features |
-| `GET /schema` | `GET` | Returns the 41 feature names, categorical options, and tab groups |
-| `GET /presets` | `GET` | Returns pre-configured benchmark attack and normal traffic samples |
-| `POST /predict` | `POST` | Accepts 41 features in JSON and returns prediction (`Normal` or `Intrusion`), confidence, probabilities, and SOC threat assessment |
-
-### Example Prediction Request
-```bash
-curl -X POST http://localhost:5000/predict \
-  -H "Content-Type: application/json" \
-  -d '{
-    "features": {
-      "duration": 0,
-      "protocol_type": "tcp",
-      "service": "http",
-      "flag": "SF",
-      "src_bytes": 232,
-      "dst_bytes": 8153,
-      "land": 0,
-      "wrong_fragment": 0,
-      "urgent": 0,
-      "hot": 0,
-      "num_failed_logins": 0,
-      "logged_in": 1,
-      "num_compromised": 0,
-      "root_shell": 0,
-      "su_attempted": 0,
-      "num_root": 0,
-      "num_file_creations": 0,
-      "num_shells": 0,
-      "num_access_files": 0,
-      "num_outbound_cmds": 0,
-      "is_host_login": 0,
-      "is_guest_login": 0,
-      "count": 5,
-      "srv_count": 5,
-      "serror_rate": 0.0,
-      "srv_serror_rate": 0.0,
-      "rerror_rate": 0.0,
-      "srv_rerror_rate": 0.0,
-      "same_srv_rate": 1.0,
-      "diff_srv_rate": 0.0,
-      "srv_diff_host_rate": 0.0,
-      "dst_host_count": 30,
-      "dst_host_srv_count": 255,
-      "dst_host_same_srv_rate": 1.0,
-      "dst_host_diff_srv_rate": 0.0,
-      "dst_host_same_src_port_rate": 0.03,
-      "dst_host_srv_diff_host_rate": 0.04,
-      "dst_host_serror_rate": 0.0,
-      "dst_host_srv_serror_rate": 0.0,
-      "dst_host_rerror_rate": 0.0,
-      "dst_host_srv_rerror_rate": 0.0
-    }
-  }'
+### 2. Start Frontend (React + Vite)
+In a second terminal:
+```powershell
+cd frontend
+npm run dev
 ```
+- Dashboard opens at: **`http://localhost:5173`**
 
 ---
 
-## 📊 Features & Benchmark Attack Scenarios
+## 🎯 How to Demonstrate to an Examiner / Professor
 
-The model expects the exact **41 features** of the NSL-KDD dataset:
+Follow this structured demonstration flow:
 
-1. **Categorical Features (3)**:
-   - `protocol_type`: `tcp`, `udp`, `icmp`
-   - `service`: `http`, `ftp`, `smtp`, `private`, `telnet`, `ssh`, etc. (70 services)
-   - `flag`: `SF` (Normal established), `S0` (SYN error), `REJ` (Rejected), `RSTO`, etc.
-2. **Numerical Features (38)**:
-   - Basic connection features (`duration`, `src_bytes`, `dst_bytes`, `land`, `wrong_fragment`, `urgent`)
-   - Content features (`hot`, `num_failed_logins`, `logged_in`, `root_shell`, `su_attempted`, etc.)
-   - Time-based traffic metrics (`count`, `srv_count`, `serror_rate`, `same_srv_rate`, etc.)
-   - Host-based traffic metrics (`dst_host_count`, `dst_host_srv_count`, `dst_host_same_srv_rate`, etc.)
-
-### 1-Click Attack Scenarios Included in UI
-- **Normal HTTP Web Traffic**: Completed 3-way handshake (`SF`), active data payload exchange, normal error rates. Result: `Normal` (Class 0).
-- **SYN Flood Attack (Neptune DoS)**: High volume of half-open SYN packets (`S0`), `serror_rate: 1.0`, targeting private ports. Result: `Intrusion` (Class 1).
-- **Port Scan / Reconnaissance (Satan Probe)**: Rapid connection attempts across distinct ports resulting in rejected connections (`REJ`) and high `diff_srv_rate`. Result: `Intrusion` (Class 1).
-- **Smurf ICMP Flood Attack**: Broadcast amplification attack over `icmp` with max connection frequency (`count: 511`). Result: `Intrusion` (Class 1).
-- **FTP Password Guess / Brute Force (R2L)**: Multiple consecutive failed logins (`num_failed_logins: 4`, `guest_login: 1`). Result: `Intrusion` (Class 1).
+1. **Module 1: Command Center & Network Topology**
+   - Open `http://localhost:5173`.
+   - Point to the **Defence Network Topology**: explain the 4 interconnected simulated zones and their criticality tiers.
+   - Point out the simulation disclaimers confirming academic prototype status.
+2. **Simulate an Ingress Cyber Attack**:
+   - In the Command Center, select **"Target Ingress Sector: Command Centre (HQ Core)"**.
+   - Click the preset **"SYN Flood Attack (Neptune DoS)"**.
+   - Click **"Analyze Traffic Packet"**.
+   - Point out that the packet is evaluated by the real `ids_model.pkl` pipeline:
+     - Model Prediction: **`INTRUSION DETECTED (Class 1)`**
+     - DecisionTree Certainty: **`100%`**
+     - Target Sector: **Command Centre**
+3. **Module 2: Threat Prioritization**:
+   - Switch to the **"Threat Prioritization"** tab in the top navigation.
+   - Point out the newly generated alert:
+     - Assigned Severity: **`P1 CRITICAL`**
+     - Documented Rule Justification: *"Rule P1-Alpha: Hostile intrusion (Neptune DoS) targeted at Mission Critical Command Centre with 100% certainty."*
+     - Emphasize to the examiner that Prediction (`Intrusion`), Confidence (`100%`), and Severity (`P1`) are strictly decoupled.
+4. **Module 3: Incident Response Workflow**:
+   - Click **"Investigate Incident"** on the alert.
+   - Show the **Raw 41-Feature Telemetry Inspector** displaying exact packet values (`flag: S0`, `serror_rate: 1.0`).
+   - Review the automated response recommendations.
+   - Record an investigation note in the Analyst Journal: *"Confirmed SYN Flood targeting HQ Gateway. Approving simulated IP drop."*
+   - Change decision to **`CONFIRMED INTRUSION`** and click **"Save Investigation"**.
+   - Click **"Review & Approve"** on the simulated firewall drop recommendation:
+     - Check the required approval box confirming simulated action.
+     - Enter Callsign: `DUTY_OFFICER_CAPT_MILLER` and click **"Confirm Simulated Action"**.
+5. **Module 4: Simulated Sector Isolation**:
+   - Return to the **"Command Center & Topology"** tab.
+   - Click **"Command Centre"** &rarr; click **"Engage Simulated Zone Isolation"**.
+   - Confirm the action: the node turns into **`ISOLATED (SIM)`** with a lock icon, demonstrating defense-in-depth containment.
+6. **Module 5: Immutable Audit Trail**:
+   - Switch to the **"Audit Trail"** tab.
+   - Show the examiner the permanent SQLite event log displaying:
+     - `MODEL_PREDICTION_EXECUTED` by `ML_PIPELINE_ENGINE`
+     - `ALERT_GENERATED`
+     - `ANALYST_INVESTIGATION_UPDATED` by analyst
+     - `SIMULATED_CONTAINMENT_APPROVED` with duty officer callsign
+     - `SIMULATED_ZONE_ISOLATION_ACTIVATED`
+   - Click **"Export CSV"** to demonstrate compliance reporting.
 
 ---
 
-## 🧪 Testing & Verification
-
-- **Automated API Test**: Run `python backend/test_api.py` to test all routes and model inference with real payloads.
-- **Frontend Build Test**: Run `npm run build` in `frontend/` to verify production assets compile without errors.
-- **Live UI Testing**:
-  1. Open `http://localhost:5173`.
-  2. Verify the top right status badge displays **"Flask API Online"**.
-  3. Click any of the 1-click attack presets.
-  4. Click **"Analyze Traffic Packet"**.
-  5. Inspect the animated confidence bar, probability breakdown, and threat evaluation.
-  6. Click **"Export CSV"** in the History table to download your test session report.
+## 🧪 Automated Testing
+Run the backend automated test suite:
+```powershell
+cd backend
+python test_api.py
+```
+*(Tests `/health`, `/api/zones`, `/predict`, `/api/alerts`, `/api/recommendations`, `/api/audit-trail`, and simulated containment approvals)*
