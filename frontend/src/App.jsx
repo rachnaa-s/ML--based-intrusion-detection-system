@@ -9,7 +9,7 @@ import HistoryTable from './components/HistoryTable';
 import DatasetInfoModal from './components/DatasetInfoModal';
 import { AlertCircle, RefreshCw, ShieldCheck, ShieldBan } from 'lucide-react';
 
-const API_BASE_URL = 'http://localhost:5000';
+const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000').replace(/\/$/, '');
 
 export default function App() {
   const [backendStatus, setBackendStatus] = useState(null);

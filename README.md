@@ -231,3 +231,52 @@ The model expects the exact **41 features** of the NSL-KDD dataset:
   4. Click **"Analyze Traffic Packet"**.
   5. Inspect the animated confidence bar, probability breakdown, and threat evaluation.
   6. Click **"Export CSV"** in the History table to download your test session report.
+
+---
+
+## 🌐 Deployment Guide (Vercel & Production Cloud)
+
+This application consists of a **Vite + React frontend** and a **Python + Scikit-Learn backend**. 
+
+Because Scikit-Learn, Pandas, NumPy, and SciPy exceed Vercel's 250 MB serverless function limit and can time out on cold starts, the standard, free production architecture is:
+1. **Frontend**: Hosted on **Vercel** (Global CDN, fast builds).
+2. **Backend**: Hosted on **Render**, **Railway**, **Koyeb**, or **Fly.io** (Free persistent Python web service).
+
+### Part 1: Deploying the Backend to Render (Free)
+
+1. Push your repository to GitHub.
+2. Sign up / Log in to [Render](https://render.com).
+3. Click **New +** > **Web Service**.
+4. Connect your GitHub repository: `rachnaa-s/ML--based-intrusion-detection-system`.
+5. Configure the service:
+   - **Name**: `ids-backend` (or your choice)
+   - **Root Directory**: `backend`
+   - **Environment**: `Python 3`
+   - **Build Command**: `pip install -r requirements.txt`
+   - **Start Command**: `gunicorn app:app --bind 0.0.0.0:$PORT`
+6. Click **Deploy Web Service**.
+7. Once deployed, copy your backend URL (e.g. `https://ids-backend.onrender.com`).
+
+---
+
+### Part 2: Deploying the Frontend to Vercel (Free)
+
+1. Sign up / Log in to [Vercel](https://vercel.com).
+2. Click **Add New...** > **Project**.
+3. Import your GitHub repository (`rachnaa-s/ML--based-intrusion-detection-system`).
+4. In the **Configure Project** screen:
+   - **Framework Preset**: `Vite`
+   - **Root Directory**: Click *Edit* and select **`frontend`**
+   - **Build Command**: `npm run build` (auto-detected)
+   - **Output Directory**: `dist` (auto-detected)
+5. Expand **Environment Variables**:
+   - Key: `VITE_API_BASE_URL`
+   - Value: `https://ids-backend.onrender.com` (your backend URL from Part 1, without trailing slash)
+6. Click **Deploy**.
+7. Vercel will build the frontend in ~20 seconds and provide your live `.vercel.app` URL!
+
+---
+
+### Local vs. Production Workflow
+- When developing locally without `VITE_API_BASE_URL` defined, the frontend automatically falls back to `http://localhost:5000`.
+- In production, it securely routes all prediction and health requests to your deployed backend URL over HTTPS.
