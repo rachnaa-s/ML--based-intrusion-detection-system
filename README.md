@@ -1,53 +1,77 @@
-# 🛡️ Machine Learning-Based Intrusion Detection System (MERN Stack)
+# 🛡️ CyberShield IDS — Machine Learning Intrusion Detection System (MERN Stack)
 
-A full-stack cybersecurity prototype built on the **MERN architecture (MongoDB, Express, React, Node.js)** that classifies network traffic vectors as **Normal Traffic** or **Potential Intrusion** in real time using a high-performance Machine Learning engine trained on the benchmark **NSL-KDD dataset**.
+<div align="center">
+
+![MERN Stack](https://img.shields.io/badge/Stack-MERN-green.svg)
+![MongoDB](https://img.shields.io/badge/MongoDB-Atlas%20%7C%20Mongoose-47A248?logo=mongodb&logoColor=white)
+![Express](https://img.shields.io/badge/Express.js-REST%20API-000000?logo=express&logoColor=white)
+![React](https://img.shields.io/badge/React%2018-Vite%20Dashboard-61DAFB?logo=react&logoColor=black)
+![Node.js](https://img.shields.io/badge/Node.js-v18%2B%20Runtime-339933?logo=nodedotjs&logoColor=white)
+![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-Cyber_Navy_Theme-38B2AC?logo=tailwind-css&logoColor=white)
+![Dataset](https://img.shields.io/badge/Dataset-NSL--KDD%20(41%20Features)-blue)
+![License](https://img.shields.io/badge/License-MIT-purple.svg)
+
+**An academic cybersecurity prototype and full-stack Security Operations Center (SOC) dashboard that evaluates network connection vectors and classifies them as Normal Traffic or Hostile Intrusions in real time.**
+
+[Architecture](#-mern-architecture) • [Features](#-key-features) • [Quick Start](#-quick-start-guide) • [API Docs](#-backend-api-endpoints) • [Deployment](#-cloud-deployment-guide) • [Attack Taxonomy](#-attack-taxonomy-covered)
+
+</div>
 
 ---
 
 ## 🌟 What's New in Version 2.0 (MERN Migration)
 
-- 🍃 **MongoDB & Mongoose Integration**: Persistent storage for all traffic prediction audit logs (`PredictionLog`), human-in-the-loop firewall rules (`BlockedIP`), and benchmark traffic presets (`Preset`).
-- ⚡ **Pure Node.js Machine Learning Runtime**: The trained NSL-KDD Decision Tree classifier and OneHotEncoder preprocessing pipeline now run natively in Node.js.
-  - Zero Python dependencies required in production.
-  - Sub-millisecond inference (< 0.1ms per packet).
-  - Eliminates Python version mismatches, heavy build times, and memory timeouts during deployment.
-- 🚀 **Effortless 1-Click Deployment**: Designed specifically for easy hosting on **Render**, **Railway**, **Vercel**, **Heroku**, or **Fly.io** using a standard Node.js runtime and **MongoDB Atlas**.
-- 🛡️ **Resilient Fallback Mode**: If MongoDB is not yet connected during initial development, the backend automatically operates with an in-memory repository without crashing.
+- 🍃 **MongoDB & Mongoose Database**: Full persistent database integration with MongoDB Atlas & Mongoose:
+  - `PredictionLog`: Stores every analyzed traffic packet, class probabilities, threat verdict, and raw 41-feature inputs.
+  - `BlockedIP`: Stores operator-enforced firewall quarantine rules.
+  - `Preset`: Pre-seeded benchmark traffic scenarios stored in database.
+- ⚡ **Pure Node.js Machine Learning Runtime**: The trained NSL-KDD Decision Tree classifier (depth 20, 569 nodes) and OneHotEncoder preprocessing pipeline now execute natively in Node.js.
+  - **Zero Python dependencies** required for deployment.
+  - **Sub-millisecond inference** (< 0.1ms per packet).
+  - Eliminates heavy C-compilation errors (`numpy`, `scipy`, `pandas`) and Python version mismatches on cloud platforms.
+- 🚀 **Effortless 1-Click Deployment**: Production-ready for **Render**, **Vercel**, **Railway**, and **Heroku**.
+- 🛡️ **Graceful Fallback Mode**: If MongoDB is not yet connected during local testing, the backend seamlessly operates with an in-memory repository without crashing.
 
 ---
 
-## 🏗️ MERN Architecture Overview
+## 🏗️ MERN Architecture
 
 ```text
-                        ┌───────────────────────────────────────────────┐
-                        │              CLIENT LAYER (React)             │
-                        │  • Tailwind Cyber UI Dashboard                │
-                        │  • 1-Click Attack Benchmarks (DoS, Probe...)  │
-                        │  • 41-Feature Tabbed Input Form               │
-                        │  • Human Intervention Firewall Controls       │
-                        └───────────────────────┬───────────────────────┘
-                                                │ REST API (JSON)
-                                                ▼
-                        ┌───────────────────────────────────────────────┐
-                        │             SERVER LAYER (Node/Express)       │
-                        │  • Express Router (/predict, /history, ...)   │
-                        │  • Embedded NSL-KDD ML Inference Engine       │
-                        │  • Threat Classification & Risk Assessment    │
-                        └───────────────────────┬───────────────────────┘
-                                                │ Mongoose ODM
-                                                ▼
-                        ┌───────────────────────────────────────────────┐
-                        │             DATABASE LAYER (MongoDB)          │
-                        │  • PredictionLog (Audit trail & probabilities)│
-                        │  • BlockedIP (Active firewall drop rules)     │
-                        │  • Preset (Seeded benchmark attack traffic)   │
-                        └───────────────────────────────────────────────┘
+ ┌────────────────────────────────────────────────────────────────────────┐
+ │                      CLIENT LAYER (React + Vite)                       │
+ │  • Cyber SOC Dashboard (Dark Navy & Cyber Emerald Theme)              │
+ │  • 1-Click Benchmark Attack Presets (DoS, Port Scan, Smurf...)        │
+ │  • 41-Feature Tabbed Input Form with Live Validation                   │
+ │  • Human-in-the-Loop Firewall Table & iptables Rule Exporter          │
+ └───────────────────────────────────┬────────────────────────────────────┘
+                                     │ REST API (JSON)
+                                     ▼
+ ┌────────────────────────────────────────────────────────────────────────┐
+ │                    SERVER LAYER (Node.js + Express)                    │
+ │  • Express REST Endpoints (/predict, /history, /blocked-ips...)        │
+ │  • Embedded NSL-KDD ML Inference Engine (Decision Tree)                │
+ │  • Cybersecurity Threat Classification & Risk Assessment               │
+ └───────────────────────────────────┬────────────────────────────────────┘
+                                     │ Mongoose ODM
+                                     ▼
+ ┌────────────────────────────────────────────────────────────────────────┐
+ │                     DATABASE LAYER (MongoDB Atlas)                     │
+ │  • PredictionLog Collection (Audit trail, timestamps, probabilities)   │
+ │  • BlockedIP Collection (Human operator firewall drop rules)          │
+ │  • Preset Collection (Pre-seeded benchmark attack signatures)          │
+ └────────────────────────────────────────────────────────────────────────┘
 ```
 
-- **M — MongoDB**: MongoDB Atlas or local MongoDB for storing prediction history, threat analytics, and firewall rules.
-- **E — Express.js**: REST API server handling request validation, cybersecurity metrics, and endpoint routing.
-- **R — React.js**: Fast Vite-powered dashboard styled with Tailwind CSS in a dark navy and cyber emerald SOC theme.
-- **N — Node.js**: Unified backend environment running both API services and ML inference.
+---
+
+## ⚡ Key Features
+
+- **Real-Time ML Classification**: Evaluates all 41 NSL-KDD connection features and classifies traffic into `Normal (0)` or `Intrusion (1)` with exact probability distributions.
+- **Explainable Cybersecurity Verdicts**: Automatically generates academic threat assessments, identifying specific attack mechanisms (e.g. *SYN Flood / Neptune*, *Satan Port Scan*, *Smurf ICMP Flood*, *FTP Brute Force*).
+- **Human-in-the-Loop Quarantine**: Security analysts can manually quarantine malicious IP addresses with one click and export generated `iptables` drop rules.
+- **Audit Logging & CSV Export**: Complete historical log of evaluated packets with timestamped CSV export for forensic auditing.
+- **Pre-Configured 1-Click Presets**: Instant evaluation of benchmark attack vectors without manually typing all 41 features.
+- **Unified & Decoupled Deployability**: Can be hosted as a single combined web service on Render/Railway or as a decoupled app (Frontend on Vercel + Backend on Render/Railway).
 
 ---
 
@@ -57,23 +81,24 @@ A full-stack cybersecurity prototype built on the **MERN architecture (MongoDB, 
 ML--based-intrusion-detection-system/
 ├── backend/
 │   ├── config/
-│   │   └── db.js                 # MongoDB connection manager & event handlers
+│   │   └── db.js                 # MongoDB connection & fallback manager
 │   ├── models/
-│   │   ├── PredictionLog.js      # Mongoose schema for prediction history
 │   │   ├── BlockedIP.js          # Mongoose schema for firewall rules
-│   │   └── Preset.js             # Mongoose schema for traffic presets
+│   │   ├── PredictionLog.js      # Mongoose schema for prediction history
+│   │   └── Preset.js             # Mongoose schema for attack traffic presets
 │   ├── routes/
-│   │   └── apiRoutes.js          # Express endpoints (/predict, /history, /blocked-ips...)
+│   │   └── apiRoutes.js          # REST endpoints (/predict, /history, /blocked-ips...)
 │   ├── services/
 │   │   ├── dataConstants.js      # 41 NSL-KDD feature metadata & attack presets
 │   │   ├── mlEngine.js           # Decision Tree inference & risk evaluation engine
-│   │   └── store.js              # Data access layer (MongoDB + in-memory fallback)
-│   ├── model.json                # Exported Decision Tree & preprocessing pipeline
+│   │   └── store.js              # Persistence layer (MongoDB + in-memory fallback)
+│   ├── model.json                # Lightweight Decision Tree & encoder model
 │   ├── server.js                 # Express application entry point
-│   ├── test_api.js               # Automated Node.js backend test suite
+│   ├── test_api.js               # Node.js automated test runner
 │   ├── package.json              # Backend dependencies
-│   ├── .env.example              # Environment variables template
-│   └── Procfile                  # Node web process configuration
+│   ├── package-lock.json
+│   ├── Procfile                  # Node web process configuration
+│   └── .env.example              # Environment variables template
 │
 ├── frontend/
 │   ├── src/
@@ -90,11 +115,16 @@ ML--based-intrusion-detection-system/
 │   │   ├── index.css                 # Cyber aesthetic and glow themes
 │   │   └── main.jsx                  # React application entry point
 │   ├── package.json                  # Frontend dependencies
+│   ├── package-lock.json
 │   ├── vite.config.js                # Vite build configuration
-│   └── tailwind.config.js            # Tailwind color scheme
+│   ├── tailwind.config.js            # Tailwind color scheme
+│   ├── postcss.config.js             # PostCSS plugins
+│   ├── vercel.json                   # Vercel SPA rewrite configuration
+│   └── .env.example
 │
-├── package.json                      # Root workspace scripts & unified deployment
-├── Procfile                          # Cloud deployment entry point
+├── package.json                      # Root workspace scripts & cloud build entry point
+├── Procfile                          # Cloud deployment runner
+├── .gitignore                        # Git ignore rules
 └── README.md                         # Project documentation
 ```
 
@@ -104,23 +134,24 @@ ML--based-intrusion-detection-system/
 
 ### Prerequisites
 - **Node.js**: Version 18 or higher (tested on Node.js 20 & 24)
-- **MongoDB**: A free **MongoDB Atlas** connection URI, or a local MongoDB instance running on port `27017`.
+- **MongoDB**: A free **MongoDB Atlas** connection string or local MongoDB instance on port `27017`.
 
 ---
 
-### Step 1: Install Dependencies
+### Step 1: Clone & Install Dependencies
 
-From the project root directory, run:
 ```bash
+git clone https://github.com/rachnaa-s/ML--based-intrusion-detection-system.git
+cd ML--based-intrusion-detection-system
 npm run install:all
 ```
-*(This automatically installs dependencies in both `backend/` and `frontend/`)*.
+*(Installs dependencies for both `backend/` and `frontend/`)*.
 
 ---
 
 ### Step 2: Configure Environment Variables
 
-Create your `.env` file in the `backend/` directory:
+Create your `.env` file inside the `backend/` directory:
 ```bash
 # Inside backend/.env
 PORT=5000
@@ -128,25 +159,25 @@ NODE_ENV=development
 MONGODB_URI=mongodb://127.0.0.1:27017/ids_db
 ```
 
-> **Using MongoDB Atlas (Recommended)**:
-> Replace `MONGODB_URI` with your Atlas connection string:
+> **Using MongoDB Atlas (Free Cloud Database)**:
+> Replace `MONGODB_URI` with your connection string:
 > `MONGODB_URI=mongodb+srv://<username>:<password>@cluster0.mongodb.net/ids_db?retryWrites=true&w=majority`
 
 ---
 
-### Step 3: Verify with Automated Test Suite
+### Step 3: Run Automated Test Suite
 
-Run the backend test suite:
+Verify that all endpoints and machine learning classifications are working:
 ```bash
 npm test
 ```
-*(Tests `/health`, `/schema`, `/presets`, `/predict`, `/history`, `/blocked-ips`, and `/stats`)*.
+All tests should pass with green 200 OK responses.
 
 ---
 
-### Step 4: Start the Application
+### Step 4: Start Development Servers
 
-You can start the backend and frontend simultaneously:
+Start the backend and frontend simultaneously:
 
 **Terminal 1 — Backend (Express + MongoDB + ML Engine):**
 ```bash
@@ -162,16 +193,16 @@ npm run dev
 ```
 *Frontend runs on `http://localhost:5173`*
 
-Open **`http://localhost:5173`** in your browser.
+Open **`http://localhost:5173`** in your browser to access the dashboard.
 
 ---
 
-## 📡 Backend API Endpoints Reference
+## 📡 Backend API Endpoints
 
 | Endpoint | Method | Description |
 | :--- | :---: | :--- |
 | `GET /health` | `GET` | Health check verifying model status, runtime, and MongoDB connectivity |
-| `GET /schema` | `GET` | Returns the 41 NSL-KDD feature names, categorical options, and tab groups |
+| `GET /schema` | `GET` | Returns 41 NSL-KDD feature names, categorical options, and tab groups |
 | `GET /presets` | `GET` | Returns pre-configured benchmark attack and normal traffic samples |
 | `POST /predict` | `POST` | Evaluates 41 features, returns prediction (`Normal` or `Intrusion`), confidence, risk verdict, and saves audit log to MongoDB |
 | `GET /api/history` | `GET` | Retrieves recent prediction audit records from MongoDB |
@@ -183,34 +214,33 @@ Open **`http://localhost:5173`** in your browser.
 
 ---
 
-## 🌐 Easy Deployment Guide
+## 🌐 Cloud Deployment Guide
 
-Because the backend is now standard **Node.js + Express + MongoDB**, it deploys cleanly in minutes without the large Python C-library sizes or version issues.
+Because the backend is standard **Node.js + Express + MongoDB**, it deploys in minutes without large Python build times or version conflicts.
 
-### Option A: Unified Full-Stack Deployment on Render (Easiest)
+### Option A: Unified Full-Stack on Render (Single Web Service)
 
-You can host both the frontend and backend together as a single Web Service on Render:
+Deploy the entire MERN app as one service:
 
-1. Push your repository to GitHub.
-2. Sign up / Log in to [Render](https://render.com).
-3. Click **New +** > **Web Service**.
-4. Select your repository: `ML--based-intrusion-detection-system`.
-5. Configure the deployment settings:
+1. Push your code to GitHub.
+2. Log in to [Render](https://render.com) and click **New +** > **Web Service**.
+3. Select your repository: `ML--based-intrusion-detection-system`.
+4. Configure service settings:
    - **Environment**: `Node`
    - **Build Command**: `npm run build`
    - **Start Command**: `npm start`
-6. Under **Environment Variables**, add:
+5. Under **Environment Variables**, add:
    - `NODE_ENV`: `production`
    - `MONGODB_URI`: `<Your MongoDB Atlas Connection String>`
-7. Click **Deploy Web Service**.
-   - Render will build the React frontend into `frontend/dist`.
-   - The Express backend will start and automatically serve the React frontend at your live `.onrender.com` URL!
+6. Click **Deploy Web Service**.
+   - Render automatically builds the React frontend into `frontend/dist`.
+   - The Express backend serves the React app and handles all API routes at your live `.onrender.com` URL.
 
 ---
 
-### Option B: Decoupled Deployment (Frontend on Vercel + Backend on Render)
+### Option B: Decoupled (Frontend on Vercel + Backend on Render/Railway)
 
-#### 1. Backend on Render:
+#### 1. Backend on Render or Railway:
 - **Root Directory**: `backend`
 - **Build Command**: `npm install`
 - **Start Command**: `npm start`
@@ -225,41 +255,38 @@ You can host both the frontend and backend together as a single Web Service on R
 - **Build Command**: `npm run build`
 - **Output Directory**: `dist`
 - **Environment Variables**:
-  - `VITE_API_BASE_URL`: `https://ids-backend.onrender.com` (no trailing slash)
+  - `VITE_API_BASE_URL`: `https://ids-backend.onrender.com` (without trailing slash)
 - Click **Deploy**!
 
 ---
 
-### Setting Up a Free MongoDB Atlas Database (2 Minutes)
+### 🍃 Free MongoDB Atlas Setup (2 Minutes)
 
-1. Go to [MongoDB Atlas](https://www.mongodb.com/cloud/atlas) and sign up for a free account.
+1. Sign up at [MongoDB Atlas](https://www.mongodb.com/cloud/atlas).
 2. Create a free **M0 Sandbox Cluster**.
-3. Under **Database Access**, create a user (e.g. `ids_user`) with a password.
-4. Under **Network Access**, click **Add IP Address** > Choose **Allow Access from Anywhere (`0.0.0.0/0`)**.
+3. Under **Database Access**, create a database user and password.
+4. Under **Network Access**, click **Add IP Address** > Select **Allow Access from Anywhere (`0.0.0.0/0`)**.
 5. Click **Connect** > **Drivers** > Copy the connection string:
    ```text
-   mongodb+srv://ids_user:<password>@cluster0.mongodb.net/ids_db?retryWrites=true&w=majority
+   mongodb+srv://<username>:<password>@cluster0.mongodb.net/ids_db?retryWrites=true&w=majority
    ```
-6. Paste this URI into your deployment environment variables as `MONGODB_URI`.
+6. Set this value as `MONGODB_URI` in your `.env` or cloud provider dashboard.
 
 ---
 
-## 📊 Features & Attack Scenarios Included
+## 🎯 Attack Taxonomy Covered
 
-The system classifies traffic using all **41 NSL-KDD attributes**:
-
-- **Categorical Features**: `protocol_type` (tcp, udp, icmp), `service` (70 services: http, smtp, ftp, private, etc.), `flag` (SF, S0, REJ, etc.)
-- **Numerical Features**: `duration`, `src_bytes`, `dst_bytes`, `count`, `srv_count`, `serror_rate`, `rerror_rate`, `same_srv_rate`, `diff_srv_rate`, etc.
-
-### 1-Click Evaluation Presets
-- **Normal HTTP Web Traffic**: Completed 3-way handshake (`SF`), active data payload exchange. Result: `Normal` (Class 0).
-- **SYN Flood Attack (Neptune DoS)**: High volume of half-open SYN packets (`S0`), `serror_rate: 1.0`. Result: `Intrusion` (Class 1).
-- **Port Scan / Reconnaissance (Satan Probe)**: Rapid connection attempts resulting in rejected connections (`REJ`). Result: `Intrusion` (Class 1).
-- **Smurf ICMP Flood Attack**: Broadcast amplification over `icmp` with max frequency (`count: 511`). Result: `Intrusion` (Class 1).
-- **FTP Password Guess / Brute Force (R2L)**: Multiple consecutive failed logins (`num_failed_logins: 4`). Result: `Intrusion` (Class 1).
+| Attack Category | Threat Type | Example Attack | Detected Signature |
+| :--- | :---: | :--- | :--- |
+| **Denial of Service (DoS)** | Critical | Neptune (SYN Flood) | Flag `S0`, high `serror_rate` (1.0), private ports |
+| **Denial of Service (DoS)** | Critical | Smurf (Broadcast Storm) | Protocol `icmp`, service `ecr_i`, connection `count: 511` |
+| **Surveillance & Probing** | High | Satan (Port Scan) | Flag `REJ`, high `diff_srv_rate`, high `rerror_rate` |
+| **Remote-to-Local (R2L)** | High | FTP Password Guess | Consecutive `num_failed_logins >= 2`, `is_guest_login: 1` |
+| **User-to-Root (U2R)** | Critical | Buffer Overflow / Exploit | Flagged `root_shell: 1`, `num_root > 0`, `hot > 0` |
+| **Legitimate Traffic** | Safe | Normal Web / Mail | Completed handshake (`SF`), normal error rates |
 
 ---
 
 ## 📄 License & Academic Attribution
 
-This project is created for educational and academic evaluation of Machine Learning in Cybersecurity based on the **NSL-KDD dataset**.
+This project is open-source and created for academic evaluation of Machine Learning in Cybersecurity based on the **NSL-KDD dataset**.
