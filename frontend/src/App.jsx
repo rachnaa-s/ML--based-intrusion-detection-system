@@ -11,9 +11,59 @@ import BlockedIPsTable from './components/BlockedIPsTable';
 import HistoryTable from './components/HistoryTable';
 import AuditTrailView from './components/AuditTrailView';
 import DatasetInfoModal from './components/DatasetInfoModal';
-import { AlertCircle, RefreshCw, ShieldCheck, ShieldBan, Network, AlertTriangle, Database } from 'lucide-react';
+import { AlertCircle, RefreshCw, ShieldCheck, ShieldBan, Network, AlertTriangle, Database, Crosshair, Terminal } from 'lucide-react';
 
-const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000').replace(/\/$/, '');
+const API_BASE_URL = (
+  import.meta.env.VITE_API_BASE_URL ||
+  (typeof window !== 'undefined' && window.location.port === '5173' ? 'http://localhost:5000' : '')
+).replace(/\/$/, '');
+
+const DEFAULT_ZONES = [
+  {
+    id: 'command_centre',
+    name: 'Command Centre (HQ Core)',
+    tier: 'Tier 1',
+    criticality: 'Mission Critical',
+    description: 'Primary military tactical command, control servers, and mission planning systems.',
+    status: 'SECURE',
+    traffic_count: 0,
+    suspicious_count: 0,
+    is_isolated: 0
+  },
+  {
+    id: 'surveillance',
+    name: 'Surveillance & Reconnaissance',
+    tier: 'Tier 2',
+    criticality: 'Tactical High',
+    description: 'Radar feeds, optical sensors, unmanned aerial reconnaissance (UAV), and perimeter monitoring networks.',
+    status: 'SECURE',
+    traffic_count: 0,
+    suspicious_count: 0,
+    is_isolated: 0
+  },
+  {
+    id: 'secure_comms',
+    name: 'Secure Communications Network',
+    tier: 'Tier 1',
+    criticality: 'Confidential',
+    description: 'Encrypted military tactical data links, encrypted SATCOM terminals, and secure field radio relays.',
+    status: 'SECURE',
+    traffic_count: 0,
+    suspicious_count: 0,
+    is_isolated: 0
+  },
+  {
+    id: 'military_base',
+    name: 'Military Base Logistics & Admin',
+    tier: 'Tier 3',
+    criticality: 'Operational',
+    description: 'Supply chain depots, facility access control, maintenance facilities, and administrative barracks network.',
+    status: 'SECURE',
+    traffic_count: 0,
+    suspicious_count: 0,
+    is_isolated: 0
+  }
+];
 
 export default function App() {
   const [activeModule, setActiveModule] = useState('command_center');
@@ -26,8 +76,8 @@ export default function App() {
   const [loading, setLoading] = useState(false);
   const [currentResult, setCurrentResult] = useState(null);
 
-  // Defence Modules State
-  const [zones, setZones] = useState([]);
+  // Defence Modules State with resilient default fallbacks
+  const [zones, setZones] = useState(DEFAULT_ZONES);
   const [selectedZoneId, setSelectedZoneId] = useState('command_centre');
   const [targetZoneForTraffic, setTargetZoneForTraffic] = useState('command_centre');
   const [alerts, setAlerts] = useState([]);
@@ -95,64 +145,91 @@ export default function App() {
     setErrorMessage(null);
     try {
       // 1. Health check
-      const healthRes = await fetch(`${API_BASE_URL}/health`);
-      if (healthRes.ok) {
-        const healthData = await healthRes.json();
-        setBackendStatus(healthData);
-      } else {
-        setBackendStatus({ status: 'error', model_loaded: false });
+      try {
+        const healthRes = await fetch(`${API_BASE_URL}/health`);
+        if (healthRes.ok) {
+          const healthData = await healthRes.json();
+          setBackendStatus(healthData);
+        } else {
+          setBackendStatus({ status: 'error', model_loaded: false });
+        }
+      } catch (e) {
+        console.warn('Health check failed:', e);
       }
 
       // 2. Fetch Zones
-      const zonesRes = await fetch(`${API_BASE_URL}/api/zones`);
-      if (zonesRes.ok) {
-        const zonesData = await zonesRes.json();
-        setZones(zonesData.zones || []);
+      try {
+        const zonesRes = await fetch(`${API_BASE_URL}/api/zones`);
+        if (zonesRes.ok) {
+          const zonesData = await zonesRes.json();
+          if (zonesData.zones && zonesData.zones.length > 0) {
+            setZones(zonesData.zones);
+          }
+        }
+      } catch (e) {
+        console.warn('Zones fetch failed:', e);
       }
 
       // 3. Fetch Alerts
-      const alertsRes = await fetch(`${API_BASE_URL}/api/alerts`);
-      if (alertsRes.ok) {
-        const alertsData = await alertsRes.json();
-        setAlerts(alertsData.alerts || []);
-        if (alertsData.alerts?.length > 0 && !selectedAlert) {
-          setSelectedAlert(alertsData.alerts[0]);
+      try {
+        const alertsRes = await fetch(`${API_BASE_URL}/api/alerts`);
+        if (alertsRes.ok) {
+          const alertsData = await alertsRes.json();
+          const loadedAlerts = alertsData.alerts || [];
+          setAlerts(loadedAlerts);
+          if (loadedAlerts.length > 0 && !selectedAlert) {
+            setSelectedAlert(loadedAlerts[0]);
+          }
         }
+      } catch (e) {
+        console.warn('Alerts fetch failed:', e);
       }
 
       // 4. Fetch Audit Trail
-      const auditRes = await fetch(`${API_BASE_URL}/api/audit-trail`);
-      if (auditRes.ok) {
-        const auditData = await auditRes.json();
-        setAuditTrail(auditData.audit_trail || []);
+      try {
+        const auditRes = await fetch(`${API_BASE_URL}/api/audit-trail`);
+        if (auditRes.ok) {
+          const auditData = await auditRes.json();
+          setAuditTrail(auditData.audit_trail || []);
+        }
+      } catch (e) {
+        console.warn('Audit trail fetch failed:', e);
       }
 
       // 5. Fetch Schema
-      const schemaRes = await fetch(`${API_BASE_URL}/schema`);
-      if (schemaRes.ok) {
-        const schemaData = await schemaRes.json();
-        setFeatureGroups(schemaData.feature_groups || {});
-        setCategoricalOptions(schemaData.categorical_options || {});
+      try {
+        const schemaRes = await fetch(`${API_BASE_URL}/schema`);
+        if (schemaRes.ok) {
+          const schemaData = await schemaRes.json();
+          setFeatureGroups(schemaData.feature_groups || {});
+          setCategoricalOptions(schemaData.categorical_options || {});
 
-        const defaults = {};
-        Object.values(schemaData.feature_groups || {}).forEach((group) => {
-          group.forEach((feat) => {
-            defaults[feat.name] = feat.default;
+          const defaults = {};
+          Object.values(schemaData.feature_groups || {}).forEach((group) => {
+            group.forEach((feat) => {
+              defaults[feat.name] = feat.default;
+            });
           });
-        });
-        setFormData((prev) => (Object.keys(prev).length === 0 ? defaults : prev));
+          setFormData((prev) => (Object.keys(prev).length === 0 ? defaults : prev));
+        }
+      } catch (e) {
+        console.warn('Schema fetch failed:', e);
       }
 
       // 6. Fetch Presets
-      const presetsRes = await fetch(`${API_BASE_URL}/presets`);
-      if (presetsRes.ok) {
-        const presetsData = await presetsRes.json();
-        setPresets(presetsData.presets || []);
-        if (presetsData.presets?.length > 0 && Object.keys(formData).length === 0) {
-          const first = presetsData.presets[0];
-          setActivePresetId(first.id);
-          setFormData(first.features);
+      try {
+        const presetsRes = await fetch(`${API_BASE_URL}/presets`);
+        if (presetsRes.ok) {
+          const presetsData = await presetsRes.json();
+          setPresets(presetsData.presets || []);
+          if (presetsData.presets?.length > 0 && Object.keys(formData).length === 0) {
+            const first = presetsData.presets[0];
+            setActivePresetId(first.id);
+            setFormData(first.features);
+          }
         }
+      } catch (e) {
+        console.warn('Presets fetch failed:', e);
       }
 
       // 7. Fetch History & Blocked IPs from MongoDB
@@ -299,7 +376,7 @@ export default function App() {
   const handleBlockIP = async (ip, reason = 'Intrusion detected by ML model') => {
     if (!ip) return;
     if (blockedIPs.some((b) => b.ip === ip)) {
-      setNotification({ type: 'warning', message: `IP ${ip} is already blocked in firewall.` });
+      setNotification({ type: 'warning', message: `IP ${ip} is already registered in the perimeter drop table.` });
       return;
     }
 
@@ -324,7 +401,7 @@ export default function App() {
 
     setNotification({
       type: 'success',
-      message: `Firewall Drop Rule Activated: IP ${ip} blocked and saved to MongoDB.`
+      message: `Perimeter Drop Enforced: IP ${ip} blocked and recorded in MongoDB.`
     });
   };
 
@@ -338,7 +415,7 @@ export default function App() {
 
     setNotification({
       type: 'info',
-      message: `Firewall Rule Removed: IP ${ip} is unblocked.`
+      message: `Perimeter Drop Lifted: IP ${ip} restored.`
     });
   };
 
@@ -400,17 +477,25 @@ export default function App() {
       setHistory((prev) => [record, ...prev]);
 
       // Refresh defence zones, alerts, and audit trail
-      const [zRes, aRes] = await Promise.all([
-        fetch(`${API_BASE_URL}/api/zones`),
-        fetch(`${API_BASE_URL}/api/alerts`)
-      ]);
-      if (zRes.ok) {
-        const zData = await zRes.json();
-        setZones(zData.zones || []);
-      }
-      if (aRes.ok) {
-        const aData = await aRes.json();
-        setAlerts(aData.alerts || []);
+      try {
+        const [zRes, aRes] = await Promise.all([
+          fetch(`${API_BASE_URL}/api/zones`),
+          fetch(`${API_BASE_URL}/api/alerts`)
+        ]);
+        if (zRes.ok) {
+          const zData = await zRes.json();
+          if (zData.zones && zData.zones.length > 0) {
+            setZones(zData.zones);
+          }
+        }
+        if (aRes.ok) {
+          const aData = await aRes.json();
+          if (aData.alerts) {
+            setAlerts(aData.alerts);
+          }
+        }
+      } catch (e) {
+        console.warn('Post-analysis refresh notice:', e);
       }
 
       handleRefreshAudit();
@@ -428,10 +513,10 @@ export default function App() {
     }
   };
 
-  const criticalAlertsCount = alerts.filter(a => a.priority === 'P1_CRITICAL' && a.status === 'NEW').length;
+  const criticalAlertsCount = (alerts || []).filter(a => a?.priority === 'P1_CRITICAL' && a?.status === 'NEW').length;
 
   return (
-    <div className="min-h-screen bg-[#070b14] text-slate-100 flex flex-col font-sans">
+    <div className="min-h-screen bg-[#040810] text-slate-100 flex flex-col font-sans bg-tactical-grid relative">
       {/* Top Navigation */}
       <Navbar
         backendStatus={backendStatus}
@@ -446,9 +531,9 @@ export default function App() {
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 lg:px-8 py-6 space-y-6">
         {/* Toast / Notification Banner for Firewall & Containment Events */}
         {notification && (
-          <div className="p-3.5 rounded-xl bg-[#0e1c36] border border-cyan-500/40 text-cyan-200 flex items-center justify-between shadow-glow-cyan animate-fadeIn">
+          <div className="hud-corner-card p-3.5 rounded-xl bg-[#061224] border border-cyan-500/60 text-cyan-200 flex items-center justify-between shadow-glow-cyan animate-fadeIn">
             <div className="flex items-center gap-2.5 text-xs font-mono">
-              <ShieldBan className="w-4 h-4 text-cyan-400 shrink-0" />
+              <ShieldBan className="w-4 h-4 text-cyan-400 shrink-0 animate-pulse" />
               <span>{notification.message}</span>
             </div>
             <button
@@ -462,20 +547,20 @@ export default function App() {
 
         {/* Error Notification Banner if backend disconnected */}
         {errorMessage && (
-          <div className="p-4 rounded-xl bg-rose-950/40 border border-rose-500/50 text-rose-200 flex items-start justify-between gap-3 shadow-lg">
+          <div className="hud-corner-card hud-corner-red p-4 rounded-xl bg-rose-950/50 border border-rose-500/60 text-rose-200 flex items-start justify-between gap-3 shadow-glow-red">
             <div className="flex items-start gap-3">
               <AlertCircle className="w-5 h-5 text-rose-400 shrink-0 mt-0.5" />
               <div>
-                <h4 className="text-sm font-semibold font-mono text-rose-300">Connection / Inference Notice</h4>
-                <p className="text-xs text-rose-200/90 mt-1">{errorMessage}</p>
+                <h4 className="text-sm font-semibold font-mono text-rose-300 uppercase">SYSTEM DISCONNECT NOTICE</h4>
+                <p className="text-xs text-rose-200/90 mt-1 font-sans">{errorMessage}</p>
               </div>
             </div>
             <button
               onClick={fetchAllDefenceData}
-              className="px-3 py-1.5 rounded-lg bg-rose-900/60 hover:bg-rose-900 text-xs font-mono font-medium text-rose-100 border border-rose-500/40 shrink-0 flex items-center gap-1.5 transition-colors"
+              className="px-3.5 py-1.5 rounded-lg bg-rose-900 hover:bg-rose-800 text-xs font-mono font-bold text-rose-100 border border-rose-500/50 shrink-0 flex items-center gap-1.5 transition-colors"
             >
               <RefreshCw className="w-3.5 h-3.5" />
-              <span>Retry Connection</span>
+              <span>Re-engage Link</span>
             </button>
           </div>
         )}
@@ -485,7 +570,7 @@ export default function App() {
         {/* ========================================================= */}
         {activeModule === 'command_center' && (
           <div className="space-y-6 animate-fadeIn">
-            <SummaryCards history={history} blockedIPsCount={blockedIPs.length} />
+            <SummaryCards history={history} blockedIPsCount={(blockedIPs || []).length} />
             <DefenceTopology
               zones={zones}
               selectedZoneId={selectedZoneId}
@@ -535,22 +620,23 @@ export default function App() {
         {/* ========================================================= */}
         {activeModule === 'traffic_inspector' && (
           <div className="space-y-6 animate-fadeIn">
-            <div className="flex items-center justify-between p-4 rounded-xl bg-[#0c1326] border border-[#1b2b4e] text-xs font-mono">
-              <span className="text-slate-300">
-                Select simulated sector for traffic analysis:
-              </span>
+            <div className="hud-corner-card flex flex-col sm:flex-row sm:items-center justify-between p-4 rounded-xl bg-[#060c18] border border-[#152542] text-xs font-mono gap-3 shadow-xl">
+              <div className="flex items-center gap-2 text-slate-300">
+                <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse"></span>
+                <span className="uppercase font-bold tracking-wider">Target Sector for Signal Telemetry:</span>
+              </div>
               <select
                 value={targetZoneForTraffic}
                 onChange={(e) => setTargetZoneForTraffic(e.target.value)}
-                className="px-3 py-1.5 rounded-lg bg-[#111c38] border border-[#233766] text-cyan-300 font-bold focus:outline-none"
+                className="px-3 py-2 rounded-lg bg-[#0a1224] border border-[#1d3159] text-cyan-300 font-bold focus:outline-none focus:border-cyan-400 font-mono"
               >
-                {zones.map(z => (
+                {(zones || []).map(z => (
                   <option key={z.id} value={z.id}>[{z.tier}] {z.name}</option>
                 ))}
               </select>
             </div>
 
-            {presets.length > 0 && (
+            {(presets || []).length > 0 && (
               <PresetSelector
                 presets={presets}
                 activePresetId={activePresetId}
@@ -616,14 +702,15 @@ export default function App() {
         )}
       </main>
 
-      {/* Footer */}
-      <footer className="border-t border-[#162340] bg-[#060a12] py-6 px-4 text-center text-xs text-slate-500 font-mono">
+      {/* Tactical Footer */}
+      <footer className="border-t border-[#121f37] bg-[#02050c] py-6 px-4 text-center text-xs text-slate-500 font-mono">
         <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3">
-          <div>
-            Defence Network Security Monitoring & Incident Response System &bull; Academic Prototype
+          <div className="flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-emerald-400"></span>
+            <span>AEGIS DEFENCE C4ISR &bull; TACTICAL CYBER INTRUSION DETECTION SYSTEM</span>
           </div>
           <div className="text-slate-400">
-            Trained on NSL-KDD Dataset &bull; MongoDB Atlas Audit Trail &bull; MERN Stack (MongoDB, Express, React, Node.js)
+            Trained on NSL-KDD Benchmark &bull; MongoDB Atlas Cryptographic Ledger &bull; Pure Node.js ML Engine
           </div>
         </div>
       </footer>

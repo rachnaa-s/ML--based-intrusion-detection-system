@@ -36,12 +36,29 @@ app.use((req, res, next) => {
 // Root welcome & API catalog
 app.get('/', (req, res, next) => {
   const distIndex = path.join(__dirname, '..', 'frontend', 'dist', 'index.html');
-  const acceptsHtml = req.headers.accept && req.headers.accept.includes('text/html');
+  const wantsOnlyJson = req.headers.accept && req.headers.accept === 'application/json';
 
-  if (acceptsHtml && fs.existsSync(distIndex)) {
+  if (!wantsOnlyJson && fs.existsSync(distIndex)) {
     return res.sendFile(distIndex);
   }
 
+  return res.json({
+    system: "Machine Learning-Based Intrusion Detection System (IDS)",
+    stack: "MERN Stack (MongoDB, Express, React, Node.js)",
+    status: "online",
+    endpoints: {
+      "GET /health": "Backend, Model, & MongoDB health status",
+      "GET /schema": "41 NSL-KDD Feature schema & options",
+      "GET /presets": "Pre-configured attack & normal traffic presets",
+      "POST /predict": "Submit traffic packet for real-time intrusion classification",
+      "GET /history": "Retrieve prediction audit log from MongoDB",
+      "GET /blocked-ips": "Firewall blacklist rules from MongoDB",
+      "GET /stats": "Aggregated cybersecurity metrics"
+    }
+  });
+});
+
+app.get('/api', (req, res) => {
   return res.json({
     system: "Machine Learning-Based Intrusion Detection System (IDS)",
     stack: "MERN Stack (MongoDB, Express, React, Node.js)",
@@ -62,7 +79,7 @@ app.get('/', (req, res, next) => {
 app.use('/api', apiRoutes);
 app.use('/', apiRoutes);
 
-// Optional: Serve frontend production build if present in frontend/dist
+// Serve frontend production build if present in frontend/dist
 const frontendDistPath = path.join(__dirname, '..', 'frontend', 'dist');
 if (fs.existsSync(frontendDistPath)) {
   app.use(express.static(frontendDistPath));
