@@ -1,8 +1,13 @@
+import crypto from 'crypto';
 import { isConnected } from '../config/db.js';
 import PredictionLog from '../models/PredictionLog.js';
 import BlockedIP from '../models/BlockedIP.js';
 import Preset from '../models/Preset.js';
+import Zone from '../models/Zone.js';
+import Alert from '../models/Alert.js';
+import AuditTrail from '../models/AuditTrail.js';
 import { SAMPLE_PRESETS } from './dataConstants.js';
+import { DEFAULT_ZONES } from './prioritization.js';
 
 // In-memory fallbacks when MongoDB is not connected
 const memoryStore = {
@@ -19,11 +24,22 @@ const memoryStore = {
       createdAt: new Date('2026-10-21T14:15:00Z')
     }
   ],
-  presets: [...SAMPLE_PRESETS]
+  presets: [...SAMPLE_PRESETS],
+  zones: JSON.parse(JSON.stringify(DEFAULT_ZONES)),
+  alerts: [],
+  auditTrail: [
+    {
+      id: `AUD-${Date.now()}-init`,
+      timestamp: new Date().toISOString().replace('T', ' ').substring(0, 19),
+      event_type: 'SYSTEM_INITIALIZATION',
+      actor: 'SYSTEM',
+      details: 'Defence Network Security Monitoring and Incident Response System initialized with 4 simulated zones.'
+    }
+  ]
 };
 
 /**
- * Seed presets and initial firewall rules if MongoDB collection is empty
+ * Seed presets, initial firewall rules, and defence zones if MongoDB collections are empty
  */
 export async function seedDefaultsIfNeeded() {
   if (!isConnected()) return;
@@ -40,13 +56,337 @@ export async function seedDefaultsIfNeeded() {
       await BlockedIP.create(memoryStore.blockedIPs[0]);
       console.log(`[MongoDB] Seeded initial firewall sample block rule into database.`);
     }
+
+    const zoneCount = await Zone.countDocuments();
+    if (zoneCount === 0) {
+      await Zone.insertMany(DEFAULT_ZONES);
+      console.log(`[MongoDB] Seeded ${DEFAULT_ZONES.length} defence network zones into database.`);
+
+      await logAuditEvent(
+        'SYSTEM_INITIALIZATION',
+        'SYSTEM',
+        'Defence Network Security Monitoring and Incident Response System initialized with 4 simulated zones.'
+      );
+    }
   } catch (err) {
     console.warn('[MongoDB] Seeding notice:', err.message);
   }
 }
 
 /**
- * Save a new traffic prediction log
+ * Log an audit trail event
+ */
+export async function logAuditEvent(eventType, actor, details, zoneId = null, alertId = null) {
+  const nowStr = new Date().toISOString().replace('T', ' ').substring(0, 19);
+  const eventId = `AUD-${Date.now()}-${crypto.randomBytes(2).toString('hex')}`;
+
+  const entry = {
+    id: eventId,
+    timestamp: nowStr,
+    event_type: eventType,
+    actor,
+    details,
+    zone_id: zoneId,
+    alert_id: alertId
+  };
+
+  if (isConnected()) {
+    try {
+      await AuditTrail.create(entry);
+      return eventId;
+    } catch (err) {
+      console.error('[MongoDB] Error logging audit event:', err.message);
+    }
+  }
+
+  memoryStore.auditTrail.unshift(entry);
+  if (memoryStore.auditTrail.length > 500) memoryStore.auditTrail.pop();
+  return eventId;
+}
+
+/**
+ * Get chronological audit trail
+ */
+export async function getAuditTrail(limit = 200) {
+  if (isConnected()) {
+    try {
+      return await AuditTrail.find({}).sort({ timestamp: -1 }).limit(Number(limit)).lean();
+    } catch (err) {
+      console.error('[MongoDB] Error fetching audit trail:', err.message);
+    }
+  }
+  return memoryStore.auditTrail.slice(0, Number(limit));
+}
+
+/**
+ * Zones Management
+ */
+export async function getAllZones() {
+  if (isConnected()) {
+    try {
+      return await Zone.find({}).sort({ id: 1 }).lean();
+    } catch (err) {
+      console.error('[MongoDB] Error fetching zones:', err.message);
+    }
+  }
+  return memoryStore.zones;
+}
+
+export async function getZoneById(zoneId) {
+  if (isConnected()) {
+    try {
+      return await Zone.findOne({ id: zoneId }).lean();
+    } catch (err) {
+      console.error('[MongoDB] Error fetching zone:', err.message);
+    }
+  }
+  return memoryStore.zones.find(z => z.id === zoneId) || null;
+}
+
+export async function updateZoneStats(zoneId, isIntrusion) {
+  if (isConnected()) {
+    try {
+      const zone = await Zone.findOne({ id: zoneId });
+      if (zone) {
+        zone.traffic_count += 1;
+        if (isIntrusion) zone.suspicious_count += 1;
+
+        if (zone.is_isolated === 1) {
+          zone.status = 'ISOLATED_SIMULATED';
+        } else if (zone.suspicious_count >= 5) {
+          zone.status = 'UNDER_ATTACK';
+        } else if (zone.suspicious_count > 0) {
+          zone.status = 'ELEVATED';
+        } else {
+          zone.status = 'SECURE';
+        }
+        await zone.save();
+        return zone.toObject();
+      }
+    } catch (err) {
+      console.error('[MongoDB] Error updating zone stats:', err.message);
+    }
+  }
+
+  // Memory fallback
+  const z = memoryStore.zones.find(item => item.id === zoneId);
+  if (z) {
+    z.traffic_count += 1;
+    if (isIntrusion) z.suspicious_count += 1;
+    if (z.is_isolated === 1) {
+      z.status = 'ISOLATED_SIMULATED';
+    } else if (z.suspicious_count >= 5) {
+      z.status = 'UNDER_ATTACK';
+    } else if (z.suspicious_count > 0) {
+      z.status = 'ELEVATED';
+    } else {
+      z.status = 'SECURE';
+    }
+    return z;
+  }
+}
+
+export async function toggleSimulatedIsolation(zoneId, actor = "HUMAN_ANALYST") {
+  const nowStr = new Date().toISOString().replace('T', ' ').substring(0, 19);
+
+  if (isConnected()) {
+    try {
+      const zone = await Zone.findOne({ id: zoneId });
+      if (!zone) return { zone: null, error: "Zone not found" };
+
+      const newIsolation = zone.is_isolated === 1 ? 0 : 1;
+      zone.is_isolated = newIsolation;
+      zone.isolation_timestamp = newIsolation === 1 ? nowStr : null;
+      zone.status = newIsolation === 1 ? 'ISOLATED_SIMULATED' : (zone.suspicious_count > 0 ? 'ELEVATED' : 'SECURE');
+      await zone.save();
+
+      const actionLabel = newIsolation === 1 ? "SIMULATED_ZONE_ISOLATION_ACTIVATED" : "SIMULATED_ZONE_ISOLATION_REVOKED";
+      const detailsDesc = `Analyst ${actor} ${newIsolation === 1 ? 'engaged simulated containment isolation on' : 'restored simulated connectivity to'} ${zone.name}.`;
+
+      await logAuditEvent(actionLabel, actor, detailsDesc, zoneId);
+      return { zone: zone.toObject(), error: null };
+    } catch (err) {
+      console.error('[MongoDB] Error toggling isolation:', err.message);
+    }
+  }
+
+  // Memory fallback
+  const z = memoryStore.zones.find(item => item.id === zoneId);
+  if (!z) return { zone: null, error: "Zone not found" };
+
+  z.is_isolated = z.is_isolated === 1 ? 0 : 1;
+  z.isolation_timestamp = z.is_isolated === 1 ? nowStr : null;
+  z.status = z.is_isolated === 1 ? 'ISOLATED_SIMULATED' : (z.suspicious_count > 0 ? 'ELEVATED' : 'SECURE');
+
+  const actionLabel = z.is_isolated === 1 ? "SIMULATED_ZONE_ISOLATION_ACTIVATED" : "SIMULATED_ZONE_ISOLATION_REVOKED";
+  const detailsDesc = `Analyst ${actor} ${z.is_isolated === 1 ? 'engaged simulated containment isolation on' : 'restored simulated connectivity to'} ${z.name}.`;
+  await logAuditEvent(actionLabel, actor, detailsDesc, zoneId);
+
+  return { zone: z, error: null };
+}
+
+/**
+ * Alerts Management
+ */
+export async function createAlert(alertData) {
+  if (isConnected()) {
+    try {
+      const doc = await Alert.create(alertData);
+      await logAuditEvent(
+        'ALERT_GENERATED',
+        'ML_ENGINE_PIPELINE',
+        `ML Model detected ${alertData.prediction} (${alertData.attack_type || 'Threat'}) in zone [${alertData.zone_id}]. Assigned ${alertData.priority}.`,
+        alertData.zone_id,
+        alertData.id
+      );
+      return doc.toObject();
+    } catch (err) {
+      console.error('[MongoDB] Error creating alert:', err.message);
+    }
+  }
+
+  memoryStore.alerts.unshift(alertData);
+  if (memoryStore.alerts.length > 500) memoryStore.alerts.pop();
+
+  await logAuditEvent(
+    'ALERT_GENERATED',
+    'ML_ENGINE_PIPELINE',
+    `ML Model detected ${alertData.prediction} (${alertData.attack_type || 'Threat'}) in zone [${alertData.zone_id}]. Assigned ${alertData.priority}.`,
+    alertData.zone_id,
+    alertData.id
+  );
+
+  return alertData;
+}
+
+export async function getAlerts({ priority, status, zone_id, limit = 100 } = {}) {
+  if (isConnected()) {
+    try {
+      const query = {};
+      if (priority) query.priority = priority;
+      if (status) query.status = status;
+      if (zone_id) query.zone_id = zone_id;
+
+      return await Alert.find(query).sort({ timestamp: -1 }).limit(Number(limit)).lean();
+    } catch (err) {
+      console.error('[MongoDB] Error fetching alerts:', err.message);
+    }
+  }
+
+  let filtered = [...memoryStore.alerts];
+  if (priority) filtered = filtered.filter(a => a.priority === priority);
+  if (status) filtered = filtered.filter(a => a.status === status);
+  if (zone_id) filtered = filtered.filter(a => a.zone_id === zone_id);
+  return filtered.slice(0, Number(limit));
+}
+
+export async function getAlertById(alertId) {
+  if (isConnected()) {
+    try {
+      return await Alert.findOne({ id: alertId }).lean();
+    } catch (err) {
+      console.error('[MongoDB] Error fetching alert:', err.message);
+    }
+  }
+  return memoryStore.alerts.find(a => a.id === alertId) || null;
+}
+
+export async function updateAlertInvestigation(alertId, status, notes, decision, actor = "HUMAN_ANALYST") {
+  if (isConnected()) {
+    try {
+      const updated = await Alert.findOneAndUpdate(
+        { id: alertId },
+        { $set: { status, analyst_notes: notes, analyst_decision: decision } },
+        { new: true }
+      ).lean();
+
+      if (updated) {
+        await logAuditEvent(
+          'ANALYST_INVESTIGATION_UPDATED',
+          actor,
+          `Analyst ${actor} updated Alert [${alertId}]: Status='${status}', Decision='${decision}'.`,
+          updated.zone_id,
+          alertId
+        );
+        return updated;
+      }
+    } catch (err) {
+      console.error('[MongoDB] Error updating alert investigation:', err.message);
+    }
+  }
+
+  const alert = memoryStore.alerts.find(a => a.id === alertId);
+  if (alert) {
+    alert.status = status;
+    alert.analyst_notes = notes;
+    alert.analyst_decision = decision;
+
+    await logAuditEvent(
+      'ANALYST_INVESTIGATION_UPDATED',
+      actor,
+      `Analyst ${actor} updated Alert [${alertId}]: Status='${status}', Decision='${decision}'.`,
+      alert.zone_id,
+      alertId
+    );
+    return alert;
+  }
+  return null;
+}
+
+export async function recordApprovedAction(alertId, actionType, approvedBy = "SOC_OFFICER_1") {
+  const nowStr = new Date().toISOString().replace('T', ' ').substring(0, 19);
+
+  if (isConnected()) {
+    try {
+      const updated = await Alert.findOneAndUpdate(
+        { id: alertId },
+        {
+          $set: {
+            approved_action: actionType,
+            approved_by: approvedBy,
+            approved_at: nowStr,
+            status: 'CONTAINED_SIMULATED'
+          }
+        },
+        { new: true }
+      ).lean();
+
+      if (updated) {
+        await logAuditEvent(
+          'SIMULATED_CONTAINMENT_APPROVED',
+          approvedBy,
+          `Explicit human approval granted for simulated action '${actionType}' on Alert [${alertId}].`,
+          updated.zone_id,
+          alertId
+        );
+        return updated;
+      }
+    } catch (err) {
+      console.error('[MongoDB] Error recording approved action:', err.message);
+    }
+  }
+
+  const alert = memoryStore.alerts.find(a => a.id === alertId);
+  if (alert) {
+    alert.approved_action = actionType;
+    alert.approved_by = approvedBy;
+    alert.approved_at = nowStr;
+    alert.status = 'CONTAINED_SIMULATED';
+
+    await logAuditEvent(
+      'SIMULATED_CONTAINMENT_APPROVED',
+      approvedBy,
+      `Explicit human approval granted for simulated action '${actionType}' on Alert [${alertId}].`,
+      alert.zone_id,
+      alertId
+    );
+    return alert;
+  }
+  return null;
+}
+
+/**
+ * Traffic Prediction Log Management
  */
 export async function savePrediction(record) {
   if (isConnected()) {
@@ -58,7 +398,6 @@ export async function savePrediction(record) {
     }
   }
 
-  // Fallback to memory
   const memoryDoc = {
     ...record,
     _id: `mem_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
@@ -71,17 +410,10 @@ export async function savePrediction(record) {
   return memoryDoc;
 }
 
-/**
- * Retrieve prediction history logs
- */
 export async function getHistory(limit = 100) {
   if (isConnected()) {
     try {
-      const logs = await PredictionLog.find({})
-        .sort({ createdAt: -1 })
-        .limit(Number(limit))
-        .lean();
-      return logs;
+      return await PredictionLog.find({}).sort({ createdAt: -1 }).limit(Number(limit)).lean();
     } catch (err) {
       console.error('[MongoDB] Error reading history logs:', err.message);
     }
@@ -89,9 +421,6 @@ export async function getHistory(limit = 100) {
   return memoryStore.history.slice(0, Number(limit));
 }
 
-/**
- * Clear all prediction history logs
- */
 export async function clearHistory() {
   if (isConnected()) {
     try {
@@ -104,9 +433,6 @@ export async function clearHistory() {
   return { success: true, message: 'Prediction history log cleared.' };
 }
 
-/**
- * Delete a single prediction history record
- */
 export async function deleteHistoryItem(id) {
   if (isConnected()) {
     try {
@@ -121,13 +447,12 @@ export async function deleteHistoryItem(id) {
 }
 
 /**
- * Retrieve all blocked IPs
+ * Blocked IPs Management
  */
 export async function getBlockedIPs() {
   if (isConnected()) {
     try {
-      const list = await BlockedIP.find({}).sort({ createdAt: -1 }).lean();
-      return list;
+      return await BlockedIP.find({}).sort({ createdAt: -1 }).lean();
     } catch (err) {
       console.error('[MongoDB] Error reading blocked IPs:', err.message);
     }
@@ -135,9 +460,6 @@ export async function getBlockedIPs() {
   return memoryStore.blockedIPs;
 }
 
-/**
- * Add an IP to the firewall blocklist
- */
 export async function addBlockedIP({ ip, reason, severity = 'High', threat_type = 'Hostile Traffic' }) {
   const ruleId = `FW-${Math.floor(1000 + Math.random() * 9000)}`;
   const nowStr = new Date().toISOString().replace('T', ' ').substring(0, 19);
@@ -153,7 +475,6 @@ export async function addBlockedIP({ ip, reason, severity = 'High', threat_type 
 
   if (isConnected()) {
     try {
-      // Upsert to avoid duplicate errors
       const updated = await BlockedIP.findOneAndUpdate(
         { ip: newEntry.ip },
         { $set: newEntry },
@@ -165,7 +486,6 @@ export async function addBlockedIP({ ip, reason, severity = 'High', threat_type 
     }
   }
 
-  // Memory fallback
   const existingIdx = memoryStore.blockedIPs.findIndex(b => b.ip === newEntry.ip);
   const memEntry = {
     ...newEntry,
@@ -180,13 +500,9 @@ export async function addBlockedIP({ ip, reason, severity = 'High', threat_type 
   return memEntry;
 }
 
-/**
- * Remove an IP from the firewall blocklist
- */
 export async function removeBlockedIP(identifier) {
   if (isConnected()) {
     try {
-      // identifier can be ruleId (_id, id, or ip)
       await BlockedIP.deleteMany({
         $or: [{ _id: identifier }, { id: identifier }, { ip: identifier }]
       });
@@ -202,9 +518,6 @@ export async function removeBlockedIP(identifier) {
   return { success: true };
 }
 
-/**
- * Get presets (from MongoDB if available, otherwise dataConstants)
- */
 export async function getPresets() {
   if (isConnected()) {
     try {
@@ -217,17 +530,15 @@ export async function getPresets() {
   return SAMPLE_PRESETS;
 }
 
-/**
- * Get aggregated statistics for dashboard KPIs
- */
 export async function getStats() {
   if (isConnected()) {
     try {
-      const [totalCount, intrusionCount, normalCount, blockedCount] = await Promise.all([
+      const [totalCount, intrusionCount, normalCount, blockedCount, alertCount] = await Promise.all([
         PredictionLog.countDocuments(),
         PredictionLog.countDocuments({ is_intrusion: true }),
         PredictionLog.countDocuments({ is_intrusion: false }),
-        BlockedIP.countDocuments()
+        BlockedIP.countDocuments(),
+        Alert.countDocuments()
       ]);
 
       return {
@@ -235,7 +546,8 @@ export async function getStats() {
         intrusions_detected: intrusionCount,
         normal_traffic: normalCount,
         intrusion_rate: totalCount > 0 ? Math.round((intrusionCount / totalCount) * 10000) / 100 : 0,
-        blocked_ips_count: blockedCount
+        blocked_ips_count: blockedCount,
+        alerts_count: alertCount
       };
     } catch (err) {
       console.error('[MongoDB] Error computing stats:', err.message);
@@ -250,6 +562,7 @@ export async function getStats() {
     intrusions_detected: intrusions,
     normal_traffic: normals,
     intrusion_rate: total > 0 ? Math.round((intrusions / total) * 10000) / 100 : 0,
-    blocked_ips_count: memoryStore.blockedIPs.length
+    blocked_ips_count: memoryStore.blockedIPs.length,
+    alerts_count: memoryStore.alerts.length
   };
 }

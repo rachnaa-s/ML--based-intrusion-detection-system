@@ -1,4 +1,4 @@
-# 🛡️ CyberShield IDS — Machine Learning Intrusion Detection System (MERN Stack)
+# 🛡️ CyberShield IDS — Defence Network Security Monitoring & Incident Response System (MERN Stack)
 
 <div align="center">
 
@@ -9,26 +9,31 @@
 ![Node.js](https://img.shields.io/badge/Node.js-v18%2B%20Runtime-339933?logo=nodedotjs&logoColor=white)
 ![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-Cyber_Navy_Theme-38B2AC?logo=tailwind-css&logoColor=white)
 ![Dataset](https://img.shields.io/badge/Dataset-NSL--KDD%20(41%20Features)-blue)
+![Google Colab](https://img.shields.io/badge/Training-Google%20Colab-F9AB00?logo=googlecolab&logoColor=white)
 ![License](https://img.shields.io/badge/License-MIT-purple.svg)
 
-**An academic cybersecurity prototype and full-stack Security Operations Center (SOC) dashboard that evaluates network connection vectors and classifies them as Normal Traffic or Hostile Intrusions in real time.**
+**An academic cybersecurity prototype and full-stack Security Operations Center (SOC) dashboard that evaluates network connection vectors, simulates defence network topology containment, calculates threat prioritization, and manages incident responses in real time.**
 
-[Architecture](#-mern-architecture) • [Features](#-key-features) • [Quick Start](#-quick-start-guide) • [API Docs](#-backend-api-endpoints) • [Deployment](#-cloud-deployment-guide) • [Attack Taxonomy](#-attack-taxonomy-covered)
+[Architecture](#-mern-architecture) • [Modules](#-soc-defence-modules) • [Colab Model Training](#-model-training--colab) • [Quick Start](#-quick-start-guide) • [API Docs](#-backend-api-endpoints) • [Deployment](#-cloud-deployment-guide) • [Attack Taxonomy](#-attack-taxonomy-covered)
 
 </div>
 
 ---
 
-## 🌟 What's New in Version 2.0 (MERN Migration)
+## 🌟 What's New in Version 2.0 (MERN & Defence Incident Response)
 
-- 🍃 **MongoDB & Mongoose Database**: Full persistent database integration with MongoDB Atlas & Mongoose:
-  - `PredictionLog`: Stores every analyzed traffic packet, class probabilities, threat verdict, and raw 41-feature inputs.
-  - `BlockedIP`: Stores operator-enforced firewall quarantine rules.
-  - `Preset`: Pre-seeded benchmark traffic scenarios stored in database.
-- ⚡ **Pure Node.js Machine Learning Runtime**: The trained NSL-KDD Decision Tree classifier (depth 20, 569 nodes) and OneHotEncoder preprocessing pipeline now execute natively in Node.js.
-  - **Zero Python dependencies** required for deployment.
+- 🍃 **MongoDB & Mongoose Database**: Full persistent database integration with MongoDB Atlas:
+  - `Zone`: Defence network sectors (`Command Centre`, `Surveillance`, `Secure Comms`, `Military Base`).
+  - `Alert`: Prioritized incident response cases with analyst notes and containment status.
+  - `AuditTrail`: Immutable event logging for forensics and compliance.
+  - `PredictionLog`: Real-time traffic predictions, probabilities, and raw 41-feature vectors.
+  - `BlockedIP`: Operator-enforced firewall quarantine rules.
+  - `Preset`: Pre-seeded benchmark attack scenarios.
+- ⚡ **Pure Node.js Machine Learning Runtime**: Trained NSL-KDD Decision Tree classifier and OneHotEncoder preprocessing pipeline run natively in Node.js.
+  - **Zero Python runtime dependencies** required for deployment.
   - **Sub-millisecond inference** (< 0.1ms per packet).
-  - Eliminates heavy C-compilation errors (`numpy`, `scipy`, `pandas`) and Python version mismatches on cloud platforms.
+  - Eliminates heavy C-library compilation errors and scikit-learn version mismatches on cloud hosting providers.
+- 🎓 **Google Colab Model Training Notebook**: Includes [`IDS_Model_Training.ipynb`](IDS_Model_Training.ipynb) documenting the complete data preprocessing, exploratory data analysis, and Decision Tree training on the NSL-KDD benchmark dataset.
 - 🚀 **Effortless 1-Click Deployment**: Production-ready for **Render**, **Vercel**, **Railway**, and **Heroku**.
 - 🛡️ **Graceful Fallback Mode**: If MongoDB is not yet connected during local testing, the backend seamlessly operates with an in-memory repository without crashing.
 
@@ -39,39 +44,44 @@
 ```text
  ┌────────────────────────────────────────────────────────────────────────┐
  │                      CLIENT LAYER (React + Vite)                       │
- │  • Cyber SOC Dashboard (Dark Navy & Cyber Emerald Theme)              │
- │  • 1-Click Benchmark Attack Presets (DoS, Port Scan, Smurf...)        │
- │  • 41-Feature Tabbed Input Form with Live Validation                   │
- │  • Human-in-the-Loop Firewall Table & iptables Rule Exporter          │
+ │  • Module 1: Command Center & Interactive Defence Network Topology     │
+ │  • Module 2: Rule-Based Threat Prioritization (P1, P2, P3, P4)         │
+ │  • Module 3: Human-in-the-Loop Incident Response Console               │
+ │  • Module 4: Traffic Inspector (41 Features & Benchmark Attack Presets)│
+ │  • Module 5: Immutable Audit Trail Forensic Table                      │
  └───────────────────────────────────┬────────────────────────────────────┘
                                      │ REST API (JSON)
                                      ▼
  ┌────────────────────────────────────────────────────────────────────────┐
  │                    SERVER LAYER (Node.js + Express)                    │
- │  • Express REST Endpoints (/predict, /history, /blocked-ips...)        │
- │  • Embedded NSL-KDD ML Inference Engine (Decision Tree)                │
- │  • Cybersecurity Threat Classification & Risk Assessment               │
+ │  • Express REST Endpoints (/predict, /zones, /alerts, /audit-trail...) │
+ │  • Embedded NSL-KDD ML Inference Engine (Decision Tree Classifier)     │
+ │  • Threat Prioritization Engine (Zone Criticality + Attack Archetypes) │
  └───────────────────────────────────┬────────────────────────────────────┘
                                      │ Mongoose ODM
                                      ▼
  ┌────────────────────────────────────────────────────────────────────────┐
  │                     DATABASE LAYER (MongoDB Atlas)                     │
- │  • PredictionLog Collection (Audit trail, timestamps, probabilities)   │
- │  • BlockedIP Collection (Human operator firewall drop rules)          │
- │  • Preset Collection (Pre-seeded benchmark attack signatures)          │
+ │  • Zone Collection (Simulated military sectors & containment status)   │
+ │  • Alert Collection (Triage queue, analyst notes, approved actions)    │
+ │  • AuditTrail Collection (Immutable chronological security event log)  │
+ │  • PredictionLog & BlockedIP Collections (Traffic history & firewall)  │
  └────────────────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## ⚡ Key Features
+## 🛡️ SOC Defence Modules
 
-- **Real-Time ML Classification**: Evaluates all 41 NSL-KDD connection features and classifies traffic into `Normal (0)` or `Intrusion (1)` with exact probability distributions.
-- **Explainable Cybersecurity Verdicts**: Automatically generates academic threat assessments, identifying specific attack mechanisms (e.g. *SYN Flood / Neptune*, *Satan Port Scan*, *Smurf ICMP Flood*, *FTP Brute Force*).
-- **Human-in-the-Loop Quarantine**: Security analysts can manually quarantine malicious IP addresses with one click and export generated `iptables` drop rules.
-- **Audit Logging & CSV Export**: Complete historical log of evaluated packets with timestamped CSV export for forensic auditing.
-- **Pre-Configured 1-Click Presets**: Instant evaluation of benchmark attack vectors without manually typing all 41 features.
-- **Unified & Decoupled Deployability**: Can be hosted as a single combined web service on Render/Railway or as a decoupled app (Frontend on Vercel + Backend on Render/Railway).
+1. **Command Center & Defence Topology**: Real-time visual status of 4 simulated sectors (`Command Centre HQ`, `Surveillance & Recon`, `Secure Communications`, `Military Base Logistics`). Supports simulated emergency sector containment isolation.
+2. **Threat Prioritization Engine**: Automatically assigns priority levels:
+   - `P1_CRITICAL`: Hostile intrusions targeting Tier 1 mission-critical assets or root exploits.
+   - `P2_HIGH`: Malicious traffic targeting Tier 2 tactical sectors (surveillance / radar).
+   - `P3_MEDIUM`: Intrusion attempts in secondary sectors.
+   - `P4_LOW`: Routine legitimate network traffic.
+3. **Incident Response Console**: Guided triage workflow where security analysts can add investigation notes, assign decisions (`CONTAINED`, `FALSE_POSITIVE`, `ESCALATED`), review automated mitigation commands, and grant explicit human approval for containment actions.
+4. **Traffic Inspector & ML Engine**: Full 41-feature tabbed input form with live benchmark attack presets (Neptune SYN flood, Satan port scan, Smurf ICMP flood, FTP brute-force).
+5. **Forensic Audit Trail**: Chronological event ledger recording every packet inspection, alert generation, zone isolation toggle, and operator intervention.
 
 ---
 
@@ -83,14 +93,18 @@ ML--based-intrusion-detection-system/
 │   ├── config/
 │   │   └── db.js                 # MongoDB connection & fallback manager
 │   ├── models/
+│   │   ├── Alert.js              # Mongoose schema for incident alerts
+│   │   ├── AuditTrail.js         # Mongoose schema for immutable audit logs
 │   │   ├── BlockedIP.js          # Mongoose schema for firewall rules
-│   │   ├── PredictionLog.js      # Mongoose schema for prediction history
-│   │   └── Preset.js             # Mongoose schema for attack traffic presets
+│   │   ├── PredictionLog.js      # Mongoose schema for traffic predictions
+│   │   ├── Preset.js             # Mongoose schema for attack traffic presets
+│   │   └── Zone.js               # Mongoose schema for defence network sectors
 │   ├── routes/
-│   │   └── apiRoutes.js          # REST endpoints (/predict, /history, /blocked-ips...)
+│   │   └── apiRoutes.js          # REST endpoints (/predict, /zones, /alerts, /audit-trail...)
 │   ├── services/
 │   │   ├── dataConstants.js      # 41 NSL-KDD feature metadata & attack presets
 │   │   ├── mlEngine.js           # Decision Tree inference & risk evaluation engine
+│   │   ├── prioritization.js     # Threat priority rules & sector criticality
 │   │   └── store.js              # Persistence layer (MongoDB + in-memory fallback)
 │   ├── model.json                # Lightweight Decision Tree & encoder model
 │   ├── server.js                 # Express application entry point
@@ -103,30 +117,44 @@ ML--based-intrusion-detection-system/
 ├── frontend/
 │   ├── src/
 │   │   ├── components/
-│   │   │   ├── Navbar.jsx            # Header with live MERN & DB status monitor
-│   │   │   ├── SummaryCards.jsx      # Analyzed, normal, intrusion KPI cards
-│   │   │   ├── PresetSelector.jsx    # 1-click attack benchmark selector
-│   │   │   ├── TrafficForm.jsx       # 41-feature tabbed input form
-│   │   │   ├── PredictionResult.jsx  # SOC threat verdict & confidence panel
-│   │   │   ├── BlockedIPsTable.jsx   # Human-in-the-loop firewall blocklist
-│   │   │   ├── HistoryTable.jsx      # Audit history table with CSV export
-│   │   │   └── DatasetInfoModal.jsx  # NSL-KDD dataset reference dialog
-│   │   ├── App.jsx                   # Main React dashboard component
-│   │   ├── index.css                 # Cyber aesthetic and glow themes
-│   │   └── main.jsx                  # React application entry point
-│   ├── package.json                  # Frontend dependencies
+│   │   │   ├── AuditTrailView.jsx          # Module 5: Immutable audit trail table
+│   │   │   ├── BlockedIPsTable.jsx         # Human-in-the-loop firewall blocklist
+│   │   │   ├── DatasetInfoModal.jsx        # NSL-KDD dataset reference dialog
+│   │   │   ├── DefenceTopology.jsx         # Module 1: Network sector topology
+│   │   │   ├── HistoryTable.jsx            # Audit history table with CSV export
+│   │   │   ├── IncidentResponseConsole.jsx # Module 3: Analyst triage console
+│   │   │   ├── Navbar.jsx                  # Module navigation bar & live health status
+│   │   │   ├── PredictionResult.jsx        # SOC threat verdict & confidence panel
+│   │   │   ├── PresetSelector.jsx          # 1-click attack benchmark selector
+│   │   │   ├── SummaryCards.jsx            # KPI cards (scanned, normal, intrusions)
+│   │   │   ├── ThreatPrioritization.jsx    # Module 2: Priority alerts list
+│   │   │   └── TrafficForm.jsx             # 41-feature tabbed input form
+│   │   ├── App.jsx                         # Main React application & state coordinator
+│   │   ├── index.css                       # Cyber aesthetic and glow themes
+│   │   └── main.jsx                        # React entry point
+│   ├── package.json                        # Frontend dependencies
 │   ├── package-lock.json
-│   ├── vite.config.js                # Vite build configuration
-│   ├── tailwind.config.js            # Tailwind color scheme
-│   ├── postcss.config.js             # PostCSS plugins
-│   ├── vercel.json                   # Vercel SPA rewrite configuration
+│   ├── vite.config.js                      # Vite build configuration
+│   ├── tailwind.config.js                  # Tailwind color scheme
+│   ├── postcss.config.js
+│   ├── vercel.json                         # Vercel SPA rewrite configuration
 │   └── .env.example
 │
-├── package.json                      # Root workspace scripts & cloud build entry point
-├── Procfile                          # Cloud deployment runner
-├── .gitignore                        # Git ignore rules
-└── README.md                         # Project documentation
+├── IDS_Model_Training.ipynb      # Google Colab model training notebook
+├── package.json                  # Root workspace scripts & cloud build entry point
+├── Procfile                      # Cloud deployment runner
+├── .gitignore                    # Git ignore rules
+└── README.md                     # Comprehensive project documentation
 ```
+
+---
+
+## 🔬 Model Training & Google Colab
+
+The machine learning classifier is trained on the benchmark **NSL-KDD dataset** (derived from DARPA'98/KDD'99):
+- The training process is documented in [`IDS_Model_Training.ipynb`](IDS_Model_Training.ipynb).
+- It applies a `ColumnTransformer` (One-Hot Encoding for categorical features `protocol_type`, `service`, `flag`, and passthrough for 38 numeric features) paired with a `DecisionTreeClassifier`.
+- The trained tree structure (569 nodes, max depth 20) is exported to [`backend/model.json`](backend/model.json) and executed in pure JavaScript for zero-latency, cross-platform deployment.
 
 ---
 
@@ -204,13 +232,21 @@ Open **`http://localhost:5173`** in your browser to access the dashboard.
 | `GET /health` | `GET` | Health check verifying model status, runtime, and MongoDB connectivity |
 | `GET /schema` | `GET` | Returns 41 NSL-KDD feature names, categorical options, and tab groups |
 | `GET /presets` | `GET` | Returns pre-configured benchmark attack and normal traffic samples |
-| `POST /predict` | `POST` | Evaluates 41 features, returns prediction (`Normal` or `Intrusion`), confidence, risk verdict, and saves audit log to MongoDB |
+| `POST /predict` | `POST` | Evaluates 41 features + sector, calculates threat priority, saves alert and prediction log |
+| `GET /api/zones` | `GET` | Retrieves all simulated defence sectors and status |
+| `POST /api/zones/:id/simulate-isolation` | `POST` | Toggles simulated containment isolation for a sector |
+| `GET /api/alerts` | `GET` | Retrieves filtered list of defence security alerts |
+| `GET /api/alerts/:id` | `GET` | Retrieves single alert details with full feature snapshot |
+| `PATCH /api/alerts/:id` | `PATCH` | Updates analyst investigation notes and decision |
+| `POST /api/alerts/:id/action` | `POST` | Records explicit human approval for containment actions |
+| `GET /api/recommendations/:id` | `GET` | Generates response recommendations for an alert |
+| `GET /api/audit-trail` | `GET` | Retrieves immutable chronological audit log records |
 | `GET /api/history` | `GET` | Retrieves recent prediction audit records from MongoDB |
 | `DELETE /api/history` | `DELETE` | Clears all prediction history records in MongoDB |
 | `GET /api/blocked-ips` | `GET` | Retrieves active firewall blacklist rules from MongoDB |
 | `POST /api/blocked-ips` | `POST` | Adds a new IP rule to the firewall blocklist in MongoDB |
 | `DELETE /api/blocked-ips/:id`| `DELETE` | Removes an IP from the firewall blocklist |
-| `GET /api/stats` | `GET` | Aggregated dashboard KPI metrics (total scans, intrusion count, normal count) |
+| `GET /api/stats` | `GET` | Aggregated dashboard KPI metrics |
 
 ---
 
