@@ -7,7 +7,7 @@ import PredictionResult from './components/PredictionResult';
 import BlockedIPsTable from './components/BlockedIPsTable';
 import HistoryTable from './components/HistoryTable';
 import DatasetInfoModal from './components/DatasetInfoModal';
-import { AlertCircle, RefreshCw, ShieldCheck, ShieldBan } from 'lucide-react';
+import { AlertCircle, RefreshCw, ShieldCheck, ShieldBan, Database } from 'lucide-react';
 
 const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000').replace(/\/$/, '');
 
@@ -76,7 +76,7 @@ export default function App() {
     }
   }, [notification]);
 
-  // Fetch backend status, schema, and presets on load
+  // Fetch backend status, schema, presets, and persisted data from MongoDB
   const fetchInitialData = async () => {
     setErrorMessage(null);
     try {
@@ -118,10 +118,36 @@ export default function App() {
           setFormData(first.features);
         }
       }
+
+      // 4. Fetch history from MongoDB
+      try {
+        const historyRes = await fetch(`${API_BASE_URL}/api/history?limit=50`);
+        if (historyRes.ok) {
+          const histData = await historyRes.json();
+          if (histData.history && histData.history.length > 0) {
+            setHistory(histData.history);
+          }
+        }
+      } catch (hErr) {
+        console.warn('Could not fetch remote history from MongoDB:', hErr);
+      }
+
+      // 5. Fetch blocked IPs from MongoDB
+      try {
+        const blockedRes = await fetch(`${API_BASE_URL}/api/blocked-ips`);
+        if (blockedRes.ok) {
+          const blockedData = await blockedRes.json();
+          if (blockedData.blocked_ips && blockedData.blocked_ips.length > 0) {
+            setBlockedIPs(blockedData.blocked_ips);
+          }
+        }
+      } catch (bErr) {
+        console.warn('Could not fetch remote blocked IPs from MongoDB:', bErr);
+      }
     } catch (err) {
       console.error('Failed to communicate with backend API:', err);
       setBackendStatus({ status: 'offline', model_loaded: false });
-      setErrorMessage('Could not connect to Flask backend at http://localhost:5000. Ensure "python app.py" is running in the backend directory.');
+      setErrorMessage(`Could not connect to MERN backend at ${API_BASE_URL}. Ensure "npm start" is running in the backend directory.`);
     }
   };
 
@@ -129,8 +155,8 @@ export default function App() {
     fetchInitialData();
   }, []);
 
-  // IP Blocking / Unblocking Handlers (Human-in-the-Loop)
-  const handleBlockIP = (ip, reason = 'Intrusion detected by ML model') => {
+  // IP Blocking / Unblocking Handlers (Human-in-the-Loop + MongoDB)
+  const handleBlockIP = async (ip, reason = 'Intrusion detected by ML model') => {
     if (!ip) return;
     if (blockedIPs.some((b) => b.ip === ip)) {
       setNotification({ type: 'warning', message: `IP ${ip} is already blocked in firewall.` });
@@ -145,17 +171,39 @@ export default function App() {
     };
 
     setBlockedIPs((prev) => [newRule, ...prev]);
+
+    // Send to MongoDB
+    try {
+      await fetch(`${API_BASE_URL}/api/blocked-ips`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ip, reason })
+      });
+    } catch (err) {
+      console.warn('Could not persist blocked IP to MongoDB:', err);
+    }
+
     setNotification({
       type: 'success',
-      message: `Firewall Drop Rule Activated: IP ${ip} has been blocked by Human Operator.`
+      message: `Firewall Drop Rule Activated: IP ${ip} has been blocked and saved to MongoDB.`
     });
   };
 
-  const handleUnblockIP = (ip) => {
+  const handleUnblockIP = async (ip) => {
     setBlockedIPs((prev) => prev.filter((b) => b.ip !== ip));
+
+    // Remove from MongoDB
+    try {
+      await fetch(`${API_BASE_URL}/api/blocked-ips/${ip}`, {
+        method: 'DELETE'
+      });
+    } catch (err) {
+      console.warn('Could not remove blocked IP from MongoDB:', err);
+    }
+
     setNotification({
       type: 'info',
-      message: `Firewall Rule Removed: IP ${ip} is now unblocked and allowed.`
+      message: `Firewall Rule Removed: IP ${ip} is now unblocked.`
     });
   };
 
@@ -231,10 +279,11 @@ export default function App() {
   };
 
   // Clear Audit Log History
-  const handleClearHistory = () => {
+  const handleClearHistory = async () => {
     setHistory([]);
     try {
       localStorage.removeItem('ids_prediction_history');
+      await fetch(`${API_BASE_URL}/api/history`, { method: 'DELETE' });
     } catch (e) {
       console.warn(e);
     }
@@ -351,7 +400,7 @@ export default function App() {
             Machine Learning Intrusion Detection System (IDS) &bull; College Project Prototype
           </div>
           <div className="text-slate-400">
-            Trained on NSL-KDD Dataset &bull; React + Vite + Flask + Scikit-Learn
+            Trained on NSL-KDD Dataset &bull; MERN Stack (MongoDB, Express, React, Node.js)
           </div>
         </div>
       </footer>

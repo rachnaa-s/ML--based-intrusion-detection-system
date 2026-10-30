@@ -1,8 +1,9 @@
 import React from 'react';
-import { Shield, ShieldAlert, Activity, Server, Radio, BookOpen } from 'lucide-react';
+import { Shield, ShieldAlert, Activity, Server, Radio, BookOpen, Database } from 'lucide-react';
 
 export default function Navbar({ backendStatus, onOpenDocs, onRefreshStatus }) {
   const isHealthy = backendStatus?.status === 'healthy' && backendStatus?.model_loaded;
+  const isMongoConnected = backendStatus?.mongodb?.connected;
 
   return (
     <header className="sticky top-0 z-50 bg-[#080e1d]/90 backdrop-blur-md border-b border-[#1b2a4a] px-4 lg:px-8 py-3.5 transition-all">
@@ -19,7 +20,7 @@ export default function Navbar({ backendStatus, onOpenDocs, onRefreshStatus }) {
           <div>
             <div className="flex items-center gap-2">
               <span className="font-mono text-xs uppercase tracking-widest text-emerald-400 font-semibold">SOC Defense AI</span>
-              <span className="text-[10px] px-1.5 py-0.5 rounded bg-[#162544] border border-[#233863] text-slate-300 font-mono">v1.0 Academic</span>
+              <span className="text-[10px] px-1.5 py-0.5 rounded bg-[#162544] border border-[#233863] text-cyan-300 font-mono">MERN Edition</span>
             </div>
             <h1 className="text-xl font-bold tracking-tight text-white flex items-center gap-2">
               CyberShield <span className="text-emerald-400 font-mono text-lg font-light">// IDS</span>
@@ -28,17 +29,25 @@ export default function Navbar({ backendStatus, onOpenDocs, onRefreshStatus }) {
         </div>
 
         {/* Center / Stats info */}
-        <div className="hidden lg:flex items-center gap-6 px-4 py-1.5 rounded-lg bg-[#0e172e] border border-[#1d2f55] text-xs font-mono text-slate-300">
+        <div className="hidden lg:flex items-center gap-5 px-4 py-1.5 rounded-lg bg-[#0e172e] border border-[#1d2f55] text-xs font-mono text-slate-300">
           <div className="flex items-center gap-2">
             <Radio className="w-3.5 h-3.5 text-cyan-400 animate-pulse" />
-            <span className="text-slate-400">Model:</span>
-            <span className="text-cyan-300 font-medium">NSL-KDD Pipeline (41 Features)</span>
+            <span className="text-slate-400">Stack:</span>
+            <span className="text-cyan-300 font-medium">MERN + ML Engine</span>
+          </div>
+          <div className="h-3 w-px bg-slate-700"></div>
+          <div className="flex items-center gap-2">
+            <Database className={`w-3.5 h-3.5 ${isMongoConnected ? 'text-emerald-400' : 'text-amber-400'}`} />
+            <span className="text-slate-400">DB:</span>
+            <span className={isMongoConnected ? 'text-emerald-300 font-medium' : 'text-amber-300 font-medium'}>
+              {isMongoConnected ? 'MongoDB Connected' : 'MongoDB Ready (Fallback)'}
+            </span>
           </div>
           <div className="h-3 w-px bg-slate-700"></div>
           <div className="flex items-center gap-2">
             <Activity className="w-3.5 h-3.5 text-emerald-400" />
             <span className="text-slate-400">Classifier:</span>
-            <span className="text-emerald-300 font-medium">DecisionTree</span>
+            <span className="text-emerald-300 font-medium">DecisionTree (41 Feat)</span>
           </div>
         </div>
 
@@ -77,10 +86,10 @@ export default function Navbar({ backendStatus, onOpenDocs, onRefreshStatus }) {
             </span>
             <div className="flex flex-col text-left">
               <span className="font-semibold leading-none">
-                {isHealthy ? 'Flask API Online' : 'Backend Disconnected'}
+                {isHealthy ? (backendStatus?.runtime?.includes('MERN') ? 'MERN API Online' : 'IDS API Online') : 'Backend Disconnected'}
               </span>
               <span className="text-[10px] text-slate-400 leading-none mt-1">
-                {isHealthy ? 'ids_model.pkl loaded' : 'Check port 5000'}
+                {isHealthy ? (isMongoConnected ? 'MongoDB Atlas Connected' : 'ML Engine Online • MERN') : 'Check port 5000'}
               </span>
             </div>
           </div>
